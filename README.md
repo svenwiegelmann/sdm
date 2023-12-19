@@ -28,14 +28,14 @@ _\<still in peer review\>_
 
 ## Installation
 1. Clone the Repository: 
-- git clone https://github.com/svenwiegelmann/sdm
-- cd sdm
+   - git clone https://github.com/svenwiegelmann/sdm
+   - cd sdm
 2. Create and Activate a Mamba Environment:
-- mamba create -n sdm
-- mamba activate sdm
+   - mamba create -n sdm
+   - mamba activate sdm
 3. Install Required Dependencies:
-- mamba install pip `numpy` `scipy` `ipython` `xlrd` `matplotlib`
-- pip install `tol-colors`
+   - mamba install pip `numpy` `scipy` `ipython` `xlrd` `matplotlib`
+   - pip install `tol-colors`
 
 ## Usage
 This tool is intended for use by individuals with a basic understanding of Python
@@ -43,15 +43,13 @@ and familiarity with energy storage concepts. After installation, you can run th
 SDM tool using the following commands:
 
 1. Start IPython:
-- ipython3
+   - ipython3
 2. Run the Main Script:
-- run `SDM_main.py`
+   - run `SDM_main.py`
 
 This will launch the interactive SDM tool interface, where you can explore various
 energy storage system designs and perform optimizations using the provided graphical
 interface and sliders.
-
----
 
 **Note**: This tool is intended for users with a foundational knowledge of Python and
 an understanding of energy storage concepts. It is particularly useful for system
