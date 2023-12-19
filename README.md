@@ -1,7 +1,5 @@
 # System Design Method (SDM) Tool
 
-[Graphical Abstract: XXX]
-
 ## Description
 The System Design Method (SDM) tool is a Python-based interactive suite designed
 for the analysis and design of energy storage systems. It integrates various
@@ -10,10 +8,11 @@ understanding of energy system parameters, offering an immersive user experience
 for system designers, researchers, and educators in the field of energy
 engineering.
 
-## Associated Work
+[Insert Graphical Abstract]
 
-The associated research paper is available at
-<still in peer review>
+## Associated Work
+The associated research publication is available at\
+_\<still in peer review\>_
 
 ## Features
 - Interactive Extended Ragone Plot (ERP) Generation: Visualize and analyze the
@@ -29,18 +28,36 @@ The associated research paper is available at
 
 ## Installation
 1. Clone the Repository: 
-   Use the command 'git clone' followed by your repository URL.
-2. Install Required Dependencies:
-   Ensure you have Python installed, along with libraries like matplotlib, numpy,
-   and xlrd. Use 'pip install' to install these libraries.
+   	git clone https://github.com/svenwiegelmann/sdm
+	cd sdm
+2. Create and Activate a Mamba Environment:
+	mamba create -n sdm
+	mamba activate sdm
+3. Install Required Dependencies:
+  	mamba install pip numpy scipy ipython xlrd matplotlib
+	pip install tol-colors
 
 ## Usage
 This tool is intended for use by individuals with a basic understanding of Python
-and familiarity with energy storage concepts. 
-- Run the main script in a Python environment: Use 'python SDM_main.py' to
-  execute the script.
-- Interact with the tool through the provided graphical interface and sliders to
-  explore different system designs.
+and familiarity with energy storage concepts. After installation, you can run the
+SDM tool using the following commands:
+
+1. Start IPython:
+	ipython3
+2. Run the Main Script:
+	run SDM_main.py
+
+This will launch the interactive SDM tool interface, where you can explore various
+energy storage system designs and perform optimizations using the provided graphical
+interface and sliders.
+---
+**Note**: This tool is intended for users with a foundational knowledge of Python and
+an understanding of energy storage concepts. It is particularly useful for system
+designers, researchers, and educators in the field of energy engineering. Detailed
+documentation for specific functions is available within the source code docstrings.
+For comprehensive insights into the tool's functionalities and modules, please refer
+to the individual documentation of `SDM_main.py`, `SDM_fcn.py`, `SDM_data.py`, and
+`xls2dict_digidata.py`.
 
 ## Modules
 - SDM_main.py: The core interactive module integrating SDM functionalities.
@@ -70,7 +87,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
-For details see [XXX].
+For details see [\$SDM/LICENSE](LICENSE).
 
 GPLv3 explicitely allows a commercial usage without any royalty or further
 implications. However, any contact to discuss possible cooperations is
