@@ -1,5 +1,7 @@
 # System Design Method (SDM) Tool
 
+[Graphical Abstract: XXX]
+
 ## Description
 The System Design Method (SDM) tool is a Python-based interactive suite designed
 for the analysis and design of energy storage systems. It integrates various
@@ -8,8 +10,10 @@ understanding of energy system parameters, offering an immersive user experience
 for system designers, researchers, and educators in the field of energy
 engineering.
 
-[Publication Link: XXX]
-[Graphical Abstract: XXX]
+## Associated Work
+
+The associated research paper is available at
+<still in peer review>
 
 ## Features
 - Interactive Extended Ragone Plot (ERP) Generation: Visualize and analyze the
