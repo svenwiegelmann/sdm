@@ -8,11 +8,27 @@ understanding of energy system parameters, offering an immersive user experience
 for system designers, researchers, and educators in the field of energy
 engineering.
 
-[Insert Graphical Abstract]
+![](https://ars.els-cdn.com/content/image/1-s2.0-S2352152X24022734-ga1_lrg.jpg)
+
+
 
 ## Associated Work
-The associated research publication is available at\
-_\<still in peer review\>_
+The associated research publication is available at
+[https://doi.org/10.1016/j.est.2024.112687](https://doi.org/10.1016/j.est.2024.112687). Please use the attached BibTeX key for citations [^1].
+
+[^1]: @article{wiegelmann_improved_2024,\
+  title = {An Improved System Design Method for Cell-Based Energy Storage Systems: {{A}} Combination of a Constraint Satisfaction Problem with an Extended {{Ragone}} Plot},\
+  shorttitle = {An Improved System Design Method for Cell-Based Energy Storage Systems},\
+  author = {Wiegelmann, Sven and Beyers, Inga and Bensmann, Astrid and {Hanke-Rauschenbach}, Richard},\
+  year = {2024},\
+  month = aug,\
+  journal = {Journal of Energy Storage},\
+  volume = {96},\
+  pages = {112687},\
+  issn = {2352152X},\
+  doi = {10.1016/j.est.2024.112687},\
+  langid = {english}
+}
 
 ## Features
 - Interactive Extended Ragone Plot (ERP) Generation: Visualize and analyze the
