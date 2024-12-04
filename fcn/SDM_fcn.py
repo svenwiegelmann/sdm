@@ -78,8 +78,9 @@ from tol_colors import tol_cmap, tol_cset
 from scipy import interpolate, optimize
 import numpy as np
 import copy
+from itertools import combinations
 
-import plot_preferences
+import plot_preferences as plot_preferences
 
 
 #%%
@@ -188,9 +189,11 @@ def compile_EP(tmp_res, calc_EPsys=False, prefix_str='cell_model[1,1].'):
             # if nP == 20:
             #     continue
             # print(nP,nSoC)
-            rn = [item[0] for item in tmp_ind if item[1]==nP and item[2]==nSoC][0]
+            # rn = [item[0] for item in tmp_ind if item[1]==nP and item[2]==nSoC][0]
             # print('=== {} ==='.format(rn))
             try:
+                rn = [item[0] for item in tmp_ind if item[1]==nP and item[2]==nSoC][0]
+
                 if calc_EPsys:
                     tmp_E = abs(tmp_res[rn]['E_sys'][-1])
                     tmp_P = abs(tmp_res[rn]['P_sys'][0])
@@ -206,92 +209,94 @@ def compile_EP(tmp_res, calc_EPsys=False, prefix_str='cell_model[1,1].'):
                 # cond4 = tmp_res[rn][prefix_str+'Crate']-tmp_res[rn]['Crate_min'][0]>0
                 cond5 = tmp_res[rn][prefix_str+'T_cell']-tmp_res[rn]['T_max'][0]>0
                 # cond6 = tmp_res[rn][prefix_str+'T_cell']-tmp_res[rn]['T_min'][0]<0
+                # cond7 = tmp_res[rn][prefix_str+'SoC']-tmp_res[rn]['SoC_max'][0]>0   #### <= DIE HIER!
+                # cond8 = tmp_res[rn][prefix_str+'SoC']-tmp_res[rn]['SoC_min'][0]<0
                 
                 
                 if not e0 or not any(ele == 0 for ele in e0):
                     e0.append(tmp_E)
                     if cond1[0]: #res[rn][prefix_str+'U_cell'][0]-res[rn]['U_max'][0]<=0:    # if U(t=0) < U_max
                         e1.append(tmp_E)
-                        e2.append(np.nan)
-                        e3.append(np.nan)
-                        e5.append(np.nan)
+                        # e2.append(np.nan)
+                        # e3.append(np.nan)
+                        # e5.append(np.nan)
                         
                     elif cond2.any() and cond3.any() and cond5.any():
                         e1.append(np.nan)
-                        if np.where(cond2)[0].min() < np.where(cond3)[0].min() and np.where(cond2)[0].min() < np.where(cond5)[0].min():
-                            e2.append(tmp_E)
-                            e3.append(np.nan)
-                            e5.append(np.nan)
-                        elif np.where(cond3)[0].min() < np.where(cond2)[0].min() and np.where(cond3)[0].min() < np.where(cond5)[0].min():
-                            e2.append(np.nan)
-                            e3.append(tmp_E)
-                            e5.append(np.nan)
-                        else:
-                            e2.append(np.nan)
-                            e3.append(np.nan)
-                            e5.append(tmp_E)
+                        # if np.where(cond2)[0].min() < np.where(cond3)[0].min() and np.where(cond2)[0].min() < np.where(cond5)[0].min():
+                        #     e2.append(tmp_E)
+                        #     e3.append(np.nan)
+                        #     e5.append(np.nan)
+                        # elif np.where(cond3)[0].min() < np.where(cond2)[0].min() and np.where(cond3)[0].min() < np.where(cond5)[0].min():
+                        #     e2.append(np.nan)
+                        #     e3.append(tmp_E)
+                        #     e5.append(np.nan)
+                        # else:
+                        #     e2.append(np.nan)
+                        #     e3.append(np.nan)
+                        #     e5.append(tmp_E)
                     
                     elif cond2.any() and cond3.any():
                         e1.append(np.nan)
-                        e5.append(np.nan)
-                        if np.where(cond2)[0].min() < np.where(cond3)[0].min():
-                            e2.append(tmp_E)
-                            e3.append(np.nan)
-                        else:
-                            e2.append(np.nan)
-                            e3.append(tmp_E)                        
+                        # e5.append(np.nan)
+                        # if np.where(cond2)[0].min() < np.where(cond3)[0].min():
+                        #     e2.append(tmp_E)
+                        #     e3.append(np.nan)
+                        # else:
+                        #     e2.append(np.nan)
+                        #     e3.append(tmp_E)                        
                     elif cond2.any() and cond5.any():
                         e1.append(np.nan)
-                        e3.append(np.nan)
-                        if np.where(cond2)[0].min() < np.where(cond5)[0].min():
-                            e2.append(tmp_E)
-                            e5.append(np.nan)
-                        else:
-                            e2.append(np.nan)
-                            e5.append(tmp_E)
+                        # e3.append(np.nan)
+                        # if np.where(cond2)[0].min() < np.where(cond5)[0].min():
+                        #     e2.append(tmp_E)
+                        #     e5.append(np.nan)
+                        # else:
+                        #     e2.append(np.nan)
+                        #     e5.append(tmp_E)
                     elif cond3.any() and cond5.any():
                         e1.append(np.nan)
-                        e2.append(np.nan)
-                        if np.where(cond3)[0].min() < np.where(cond5)[0].min():
-                            e3.append(tmp_E)
-                            e5.append(np.nan)
-                        else:
-                            e3.append(np.nan)
-                            e5.append(tmp_E)
+                        # e2.append(np.nan)
+                        # if np.where(cond3)[0].min() < np.where(cond5)[0].min():
+                        #     e3.append(tmp_E)
+                        #     e5.append(np.nan)
+                        # else:
+                        #     e3.append(np.nan)
+                        #     e5.append(tmp_E)
             
                     elif cond2.any():
                         e1.append(np.nan)
-                        e2.append(tmp_E)
-                        e3.append(np.nan)
-                        e5.append(np.nan)
+                        # e2.append(tmp_E)
+                        # e3.append(np.nan)
+                        # e5.append(np.nan)
                     elif cond3.any():
                         e1.append(np.nan)
-                        e2.append(np.nan)
-                        e3.append(tmp_E)
-                        e5.append(np.nan)
+                        # e2.append(np.nan)
+                        # e3.append(tmp_E)
+                        # e5.append(np.nan)
                     elif cond5.any():
                         e1.append(np.nan)
-                        e2.append(np.nan)
-                        e3.append(np.nan)
-                        e5.append(tmp_E)
+                        # e2.append(np.nan)
+                        # e3.append(np.nan)
+                        # e5.append(tmp_E)
                    
                     else:
                         e1.append(np.nan)
-                        e2.append(np.nan)
-                        e3.append(np.nan)
-                        e5.append(np.nan)
+                    #     e2.append(np.nan)
+                    #     e3.append(np.nan)
+                    #     e5.append(np.nan)
                 else:
                     e0.append(np.nan)
-                    e1.append(np.nan)
-                    e2.append(np.nan)
-                    e3.append(np.nan)
-                    e5.append(np.nan)
+                    # e1.append(np.nan)
+                    # e2.append(np.nan)
+                    # e3.append(np.nan)
+                    # e5.append(np.nan)
             except:
                 e0.append(np.nan)
-                e1.append(np.nan)
-                e2.append(np.nan)
-                e3.append(np.nan)
-                e5.append(np.nan)
+                # e1.append(np.nan)
+                # e2.append(np.nan)
+                # e3.append(np.nan)
+                # e5.append(np.nan)
                 
             if nSoC == 0:
                 try:
@@ -311,8 +316,8 @@ def compile_EP(tmp_res, calc_EPsys=False, prefix_str='cell_model[1,1].'):
 
 
 #%%
-def recalc_limits(res, Umax, Umin, Cratemax, Tmax, SoCmin=-0.1, calc_EPsys=False, 
-                  prefix_str='cell_model[1,1].'):
+def recalc_limits(res, Umax, Umin, Cratemax, Tmax, SoCmin=-0.5, SoCmax=1.5,
+                  calc_EPsys=False, prefix_str='cell_model[1,1].'):
     """
     Adjusts the limits of various parameters in simulation results and 
     recalculates data arrays based on these new limits. Handles both 
@@ -326,6 +331,8 @@ def recalc_limits(res, Umax, Umin, Cratemax, Tmax, SoCmin=-0.1, calc_EPsys=False
     - Tmax (float): Maximum temperature limit.
     - SoCmin (float, optional): Minimum state of charge limit. Defaults
       to -0.1.
+    - SoCmax (float, optional): Maximum state of charge limit. Defaults
+      to 1.1.
     - calc_EPsys (bool, optional): If True, recalculates system-level 
       data. False for cell-level data.
     - prefix_str (str, optional): Substring for specific sub-model in 
@@ -357,77 +364,58 @@ def recalc_limits(res, Umax, Umin, Cratemax, Tmax, SoCmin=-0.1, calc_EPsys=False
             loc_res[rn]['Crate_max'] = np.array([Cratemax]*2)
             loc_res[rn]['T_max'] = np.array([Tmax]*2)
             loc_res[rn]['SoC_min'] = np.array([SoCmin]*2)
+            loc_res[rn]['SoC_max'] = np.array([SoCmax]*2)
 
-            
-            cond1 = loc_res[rn][prefix_str+'U_cell']-loc_res[rn]['U_max'][0]>0
-            cond2 = loc_res[rn][prefix_str+'U_cell']-loc_res[rn]['U_min'][0]<0
-            cond3 = loc_res[rn][prefix_str+'Crate']-loc_res[rn]['Crate_max'][0]>0    
-            # cond4 = loc_res[rn][prefix_str+'Crate']-loc_res[rn]['Crate_min'][0]>0
-            cond5 = loc_res[rn][prefix_str+'T_cell']-loc_res[rn]['T_max'][0]>0
-            # cond6 = loc_res[rn][prefix_str+'T_cell']-loc_res[rn]['T_min'][0]<0
-            # cond7 = loc_res[rn][prefix_str+'SoC']-loc_res[rn]['SoC_max'][0]<0
-            cond8 = loc_res[rn][prefix_str+'SoC']-loc_res[rn]['SoC_min'][0]<0
-            
             # ind_s ("-1" overlapping due to symbols)
-            if cond1.any():
-                ind_s = np.where(cond1)[0].max()-1 if np.where(cond1)[0].max() > 0 else 0 
+            cond_s = {1:    loc_res[rn][prefix_str+'U_cell']-loc_res[rn]['U_max'][0]>0,
+                      # 4:    loc_res[rn][prefix_str+'Crate']-loc_res[rn]['Crate_min'][0]>0,
+                      # 6:    loc_res[rn][prefix_str+'T_cell']-loc_res[rn]['T_min'][0]<0,
+                      7:    loc_res[rn][prefix_str+'SoC']-loc_res[rn]['SoC_max'][0]>0}
+            
+            
+            def find_max_cond_s(cond):
+                for ii in range(len(cond)):
+                    ele = list(combinations(cond.keys(),len(cond)-ii))
+                    for n_ele,i in enumerate(ele):
+                        if all([cond[n].any() for n in i]):
+                            # print(i,max([np.where(cond[n])[0].max()-1 if np.where(cond[n])[0].max() > 0 else 0 for n in i]))
+                            return max([np.where(cond[n])[0].max()-1 if np.where(cond[n])[0].max() > 0 else 0 for n in i])
+                        else:
+                            continue
+            
+            val_s = find_max_cond_s(cond_s)
+            if val_s:
+                ind_s = val_s
+                # print(True, ind_s)
             else:
                 ind_s = 0
- 
-            # ind_e ("+1" overlapping due to symbols)
-            if cond2.any() and cond3.any() and cond5.any() and cond8.any():
-                ind_e = min(np.where(cond2)[0].min(),
-                            np.where(cond3)[0].min(),
-                            np.where(cond5)[0].min(),
-                            np.where(cond8)[0].min())+1
-
-            elif cond2.any() and cond3.any() and cond5.any():
-                ind_e = min(np.where(cond2)[0].min(),
-                            np.where(cond3)[0].min(),
-                            np.where(cond5)[0].min())+1            
-            elif cond2.any() and cond3.any() and cond8.any():
-                ind_e = min(np.where(cond2)[0].min(),
-                            np.where(cond3)[0].min(),
-                            np.where(cond8)[0].min())+1
-            elif cond2.any() and cond5.any() and cond8.any():
-                ind_e = min(np.where(cond2)[0].min(),
-                            np.where(cond5)[0].min(),
-                            np.where(cond8)[0].min())+1
-            elif cond3.any() and cond5.any() and cond8.any():
-                ind_e = min(np.where(cond3)[0].min(),
-                            np.where(cond5)[0].min(),
-                            np.where(cond8)[0].min())+1
-
-            elif cond2.any() and cond3.any():
-                ind_e = min(np.where(cond2)[0].min(),
-                            np.where(cond3)[0].min())+1
-            elif cond2.any() and cond5.any():
-                ind_e = min(np.where(cond2)[0].min(),
-                            np.where(cond5)[0].min())+1
-            elif cond2.any() and cond8.any():
-                ind_e = min(np.where(cond2)[0].min(),
-                            np.where(cond8)[0].min())+1
-            elif cond3.any() and cond5.any():
-                ind_e = min(np.where(cond3)[0].min(),
-                            np.where(cond5)[0].min())+1
-            elif cond3.any() and cond8.any():
-                ind_e = min(np.where(cond3)[0].min(),
-                            np.where(cond8)[0].min())+1
-            elif cond5.any() and cond8.any():
-                ind_e = min(np.where(cond5)[0].min(),
-                            np.where(cond8)[0].min())+1
+                # print(False, ind_s)
             
-            elif cond2.any():
-                ind_e = np.where(cond2)[0].min()+1
-            elif cond3.any():
-                ind_e = np.where(cond3)[0].min()+1
-            elif cond5.any():
-                ind_e = np.where(cond5)[0].min()+1
-            elif cond8.any():
-                ind_e = np.where(cond8)[0].min()+1            
+                        
+            # ind_e ("+1" overlapping due to symbols)            
+            cond_e = {2:    loc_res[rn][prefix_str+'U_cell']-loc_res[rn]['U_min'][0]<0,
+                      3:    loc_res[rn][prefix_str+'Crate']-loc_res[rn]['Crate_max'][0]>0,
+                      5:    loc_res[rn][prefix_str+'T_cell']-loc_res[rn]['T_max'][0]>0,
+                      8:    loc_res[rn][prefix_str+'SoC']-loc_res[rn]['SoC_min'][0]<0}
+        
+            def find_min_cond_e(cond):
+                for ii in range(len(cond)):
+                    ele = list(combinations(cond.keys(),len(cond)-ii))
+                    for n_ele,i in enumerate(ele):
+                        if all([cond[n].any() for n in i]):
+                            # print(i,min([np.where(cond[n])[0].min() for n in i])+1)
+                            return min([np.where(cond[n])[0].min() for n in i])+1
+                        else:
+                            continue
+            
+            val_e = find_min_cond_e(cond_e)
+            if val_e:
+                ind_e = val_e
+                # print(True, ind_e)
             else:
                 ind_e = len(loc_res[rn]['time'])
-            
+                # print(False, ind_e)
+
             for key in loc_res[rn]:
                 if isinstance(loc_res[rn][key],np.ndarray) and key not in loc_res[rn]['_settings']['ParameterValues']:
                     if key == prefix_str+'E_cell' or key == 'E_cell[1,1]' or key == 'E_sys': # integral quantity
@@ -435,6 +423,12 @@ def recalc_limits(res, Umax, Umin, Cratemax, Tmax, SoCmin=-0.1, calc_EPsys=False
                         loc_res[rn][key] = loc_res[rn][key][ind_s:ind_e] - loc_res[rn][key][ind_s]
                     else:
                         loc_res[rn][key] = loc_res[rn][key][ind_s:ind_e]
+
+            loc_res[rn]['_settings']['recalc-limits:cond_s'] = cond_s
+            loc_res[rn]['_settings']['recalc-limits:cond_e'] = cond_e
+            loc_res[rn]['_settings']['recalc-limits:ind_s'] = ind_s
+            loc_res[rn]['_settings']['recalc-limits:ind_e'] = ind_e
+                        
         except:
             0
     return loc_res
@@ -485,9 +479,11 @@ def calc_design(x_data, y_data, m, b=0, show_plt=True, show_annotation=True,
     x_ref = [0,max(x_data)]
 
     # Calculate Design Point(s)
-    h = lambda x: func1(x) - funcEP(x)
+    # h = lambda x: func1(x) - funcEP(x)
+    h = lambda x: (func1(x) - funcEP(x))**2
     
-    x_int = optimize.fsolve(h,np.average(np.array(x_data)[~np.isnan(y_data)]))
+    # optimize.fsolve(h,[0,np.average(np.array(x_data)[~np.isnan(y_data)]),1])
+    x_int = optimize.fsolve(h,np.average(np.array(x_data)[~np.isnan(y_data)]),factor=0.5)
     y_int = funcEP(x_int)
     
     tmp_obj = []
@@ -1122,15 +1118,15 @@ def _set_intersection_limits(g, EPline_x, EPline_y, zfig, zax, replot=False, **k
         farbe = plot_preferences.plot_pre()[0]
         if replot:
             g['pl_{}_{}_{}'.format(zfig,zax,110)][0].set_data([x]*2,[-1e20,1e20])
-            g['pl_{}_{}_{}'.format(zfig,zax,111)][0].set_data(x,yint)
+            g['pl_{}_{}_{}'.format(zfig,zax,111)][0].set_data([x],[yint])
         else:
             g['pl_{}_{}_{}'.format(zfig,zax,110)] = g['ax_{}_{}'.format(zfig,zax)].plot([x]*2,[-1e20,1e20],color=farbe[2],ls='dotted',lw=1,zorder=100)
-            g['pl_{}_{}_{}'.format(zfig,zax,111)] = g['ax_{}_{}'.format(zfig,zax)].plot(x,yint,color=farbe[2],ls='None',marker='o',markersize=4.5,zorder=100)
+            g['pl_{}_{}_{}'.format(zfig,zax,111)] = g['ax_{}_{}'.format(zfig,zax)].plot([x],[yint],color=farbe[2],ls='None',marker='o',markersize=4.5,zorder=100)
         
         if zax == 1:
             g['an_{}_{}_{}'.format(zfig,zax,110)].xy = (x,g['ax_{}_{}'.format(zfig,zax)].get_ylim()[1])
     except:
-        0
+        pass
     return x, yint
 
 
@@ -1358,9 +1354,9 @@ def plot_dss(g, c, zfig, zax, print_opt=False, **kwargs):
         clim = g['pl_{}_{}_{}'.format(zfig,zax,21)].get_clim()
         opt_share = (loc['xy_opt'][2]-clim[0])/(clim[1]-clim[0])
         if 'pl_{}_{}_{}'.format(zfig,zax,22) not in g:
-            g['pl_{}_{}_{}'.format(zfig,zax,22)] = g['ax_{}_{}'.format(zfig,zax)].plot(loc['xy_opt'][0],loc['xy_opt'][1],c='k',marker='o',ms=7,mfc=cmap(opt_share),mew=2,zorder=10) # ms=6.5
+            g['pl_{}_{}_{}'.format(zfig,zax,22)] = g['ax_{}_{}'.format(zfig,zax)].plot([loc['xy_opt'][0]],[loc['xy_opt'][1]],c='k',marker='o',ms=7,mfc=cmap(opt_share),mew=2,zorder=10) # ms=6.5
         else:
-            g['pl_{}_{}_{}'.format(zfig,zax,22)][0].set_data(loc['xy_opt'][0],loc['xy_opt'][1])
+            g['pl_{}_{}_{}'.format(zfig,zax,22)][0].set_data([loc['xy_opt'][0]],[loc['xy_opt'][1]])
             g['pl_{}_{}_{}'.format(zfig,zax,22)][0].set_mfc(cmap(opt_share))
 
         if 'cpl_{}_{}_{}'.format(zfig,zax,0) not in g:
@@ -1557,7 +1553,8 @@ def _print_limit_values(g, c, zfig, zax, print_pec=False, xytext=(-95,0),
     - Placement and styling of annotations are customizable for flexibility.
     """
     
-    an_text = r'\textbf{Cell Limits}'
+    an_text = ''
+    an_text += r'\textbf{Cell Limits}'
     an_text += '\n\n'
     an_text += r'$P_\mathrm{{cell,max}}^\mathrm{{dis}}$ = {:.2f} W'.format(c['cell']['Pdc_DIS_max'])
     an_text += '\n'
@@ -1593,7 +1590,7 @@ def _print_limit_values(g, c, zfig, zax, print_pec=False, xytext=(-95,0),
     
     
 #%%
-def plot_EP_limit(g, zfig, zax, res, n, nSoC=0, prefix_str='cell_model[1,1].', 
+def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].', 
                   calc_EPsys=False, print_ann=False, plot_limit=[]):
     """
     Plot extended Ragone plot (ERP) curves, representing operational limits of 
@@ -1635,12 +1632,31 @@ def plot_EP_limit(g, zfig, zax, res, n, nSoC=0, prefix_str='cell_model[1,1].',
     n0 = 0
 
     # Limits
-    limit = {'SoCmin':      np.arange(0,1,0.1).tolist(),
-             'Umin':        np.arange(res[n]['U_min'][0]+0.3,res[n]['U_max'][0]-0.5+0.1,0.05).tolist(),
-             'Umax':        np.arange(res[n]['U_min'][0],res[n]['U_max'][0]+0.1,0.05).T.tolist(),
-             'Cratemax':    np.flip(np.arange(0.5,res[n]['Crate_max'][0]+0.5,0.5)).tolist(),
-             'Tmax':        np.arange(25,res[n]['T_max'][0],0.5).tolist(),
-             }
+    if '/Scienlab/LTO20130205' in res[rn]['_settings']['att'].keys():
+        limit = {'SoCmin':      np.arange(0,1,0.1).tolist(),
+                 'SoCmax':      np.arange(0.1,1,0.1).T.tolist(),
+                 'Umin':        np.arange(res[rn]['U_min'][0]+0.3,res[rn]['U_max'][0]-0.5+0.1,0.05).tolist(),
+                 'Umax':        np.arange(res[rn]['U_min'][0]+0.2,res[rn]['U_max'][0]-0.5+0.1,0.05).T.tolist(),
+                 'Cratemax':    np.flip(np.arange(0.5,res[rn]['Crate_max'][0]+0.5,0.5)).tolist(),
+                 'Tmax':        np.arange(25,res[rn]['T_max'][0],0.5).tolist(),
+                 }
+    elif '/Scienlab/SCiB 23Ah' in res[rn]['_settings']['att'].keys():
+        limit = {'SoCmin':      np.arange(0,1,0.1).tolist(),
+                 'SoCmax':      np.arange(0.1,1,0.1).T.tolist(),
+                 'Umin':        np.arange(res[rn]['U_min'][0],res[rn]['U_max'][0]+0.1,0.05).tolist(),
+                 'Umax':        np.arange(res[rn]['U_min'][0]+0.2,res[rn]['U_max'][0]-0.1,0.05).T.tolist(),
+                 'Cratemax':    np.flip(np.arange(0.5,res[rn]['Crate_max'][0]+0.5,0.5)).tolist(),
+                 'Tmax':        np.arange(25,res[rn]['T_max'][0],0.5).tolist(),
+                 }
+    else:
+        limit = {'SoCmin':      np.arange(0,1,0.1).tolist(),
+                 'SoCmax':      np.arange(0.1,1,0.1).T.tolist(),
+                 'Umin':        np.arange(res[rn]['U_min'][0],res[rn]['U_max'][0],0.05).tolist(),
+                 'Umax':        np.arange(res[rn]['U_min'][0],res[rn]['U_max'][0],0.05).T.tolist(),
+                 'Cratemax':    np.flip(np.arange(0.5,res[rn]['Crate_max'][0]+0.5,0.5)).tolist(),
+                 'Tmax':        np.arange(25,res[rn]['T_max'][0],0.5).tolist(),
+                 }
+        
     for key in limit:
         if key not in plot_limit:
             limit[key] = []
@@ -1648,7 +1664,7 @@ def plot_EP_limit(g, zfig, zax, res, n, nSoC=0, prefix_str='cell_model[1,1].',
     # SoCmin
     nSoCmin = 0
     for nSoCmin,u in enumerate(limit['SoCmin']):
-        res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[n]['U_max'][0], Umin=res[n]['U_min'][0], Cratemax=res[n]['Crate_max'][0], Tmax=res[n]['T_max'][0], SoCmin=u)
+        res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[rn]['U_max'][0], Umin=res[rn]['U_min'][0], Cratemax=res[rn]['Crate_max'][0], Tmax=res[rn]['T_max'][0], SoCmin=u)
         d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc, prefix_str=prefix_str, calc_EPsys=calc_EPsys)
   
         g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nSoCmin)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[8],marker='.',markersize=4,lw=1)
@@ -1658,7 +1674,10 @@ def plot_EP_limit(g, zfig, zax, res, n, nSoC=0, prefix_str='cell_model[1,1].',
       
         # Annotation
         if print_ann:
-            n = 3+3*nSoCmin
+            if '/Scienlab/LTO20130205' in res[rn]['_settings']['att'].keys():
+                n = 3+3*nSoCmin
+            else:
+                n = 1+2*nSoCmin
             g['ax_{}_{}'.format(zfig,zax)].annotate(r'{:.0f}\,\%'.format(round(u*100,1)),
                                                     (d_recalc['p'][n],d_recalc[nSoC][0][n]),
                                                     textcoords="offset points",
@@ -1671,10 +1690,39 @@ def plot_EP_limit(g, zfig, zax, res, n, nSoC=0, prefix_str='cell_model[1,1].',
                                                     zorder=100)
     n0 += nSoCmin
   
+    # SoCmax
+    nSoCmax = 0
+    for nSoCmax,u in enumerate(limit['SoCmax']):
+        res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[rn]['U_max'][0], Umin=res[rn]['U_min'][0], Cratemax=res[rn]['Crate_max'][0], Tmax=res[rn]['T_max'][0], SoCmax=u)
+        d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc, prefix_str=prefix_str, calc_EPsys=calc_EPsys)
+  
+        g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nSoCmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[14],marker='.',markersize=4,lw=1)
+        # g['pl_{}_{}_{}_{}'.format(zfig,zax,5,n0+nSoCmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][1],color=farbe[14],marker='v',markersize=4,ls='None')
+        # g['pl_{}_{}_{}_{}'.format(zfig,zax,6,n0+nSoCmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][2],color=farbe[14],marker='o',markersize=4,ls='None')
+        # g['pl_{}_{}_{}_{}'.format(zfig,zax,7,n0+nSoCmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][3],color=farbe[14],marker='d',markersize=4,ls='None')
+      
+        # Annotation
+        if print_ann:
+            if '/Scienlab/LTO20130205' in res[rn]['_settings']['att'].keys():
+                n = 3
+            else:
+                n = 2
+            g['ax_{}_{}'.format(zfig,zax)].annotate(r'{:.0f}\,\%'.format(round(u*100,1)),
+                                                    (d_recalc['p'][n],d_recalc[nSoC][0][n]),
+                                                    textcoords="offset points",
+                                                    xytext=(0,0),# if nSoCmax>0 else (0,4),
+                                                    c=farbe[14],
+                                                    size='smaller',
+                                                    ha='center',
+                                                    va='center',
+                                                    bbox=bbox_args,
+                                                    zorder=100)
+    n0 += nSoCmax
+    
     # Umin
     nUmin = 0
     for nUmin,u in enumerate(limit['Umin']):
-        res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[n]['U_max'][0], Umin=u, Cratemax=res[n]['Crate_max'][0], Tmax=res[n]['T_max'][0])
+        res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[rn]['U_max'][0], Umin=u, Cratemax=res[rn]['Crate_max'][0], Tmax=res[rn]['T_max'][0])
         d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc,prefix_str=prefix_str, calc_EPsys=calc_EPsys)
   
         g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nUmin)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[5],marker='.',markersize=4,lw=1)
@@ -1698,7 +1746,7 @@ def plot_EP_limit(g, zfig, zax, res, n, nSoC=0, prefix_str='cell_model[1,1].',
                   23 if nUmin == 2 else # 1.9 V
                   27 if nUmin == 1 else
                   30) # 1.8 V
-            g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}\,V'.format(round(u,2)) if nUmin>2 else r'${}\,\dots\,{}\,V$'.format(round(u,2),round(res[n]['U_min'][0],2)) if nUmin==2 else '',
+            g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}\,V'.format(round(u,2)) if nUmin>2 else r'${}\,\dots\,{}\,V$'.format(round(u,2),round(res[rn]['U_min'][0],2)) if nUmin==2 else '',
                                                     (d_recalc['p'][n],d_recalc[nSoC][0][n]),
                                                     textcoords="offset points",
                                                     xytext = ((5,5.5) if nUmin==13 else
@@ -1720,19 +1768,57 @@ def plot_EP_limit(g, zfig, zax, res, n, nSoC=0, prefix_str='cell_model[1,1].',
     # Umax
     nUmax = 0
     for nUmax,u in enumerate(limit['Umax']):
-        res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=u, Umin=res[n]['U_min'][0], Cratemax=res[n]['Crate_max'][0], Tmax=res[n]['T_max'][0])
+        res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=u, Umin=res[rn]['U_min'][0], Cratemax=res[rn]['Crate_max'][0], Tmax=res[rn]['T_max'][0])
         d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc, prefix_str=prefix_str, calc_EPsys=calc_EPsys)
   
         g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nUmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[10],marker='.',markersize=4,lw=1)
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,5,n0+nUmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][1],color=farbe[10],marker='v',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,6,n0+nUmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][2],color=farbe[10],marker='o',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,7,n0+nUmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][3],color=farbe[10],marker='d',markersize=4,ls='None')
+    
+        # Annotation
+        if print_ann:
+            n = ( 1 if nUmax == 15 else
+                  4 if nUmax == 14 else # 2.4 V
+                  9 if nUmax == 13 else
+                  14 if nUmax == 12 else # 2.3 V
+                  19 if nUmax == 11 else
+                  23 if nUmax == 10 else # 2.2 V
+                  26 if nUmax == 9 else
+                  27 if nUmax == 8 else # 2.1 V
+                  27 if nUmax == 7 else
+                  26 if nUmax == 6 else # 2.0 V
+                  21 if nUmax == 5 else
+                  10 if nUmax == 4 else # 1.9 V
+                  0 if nUmax == 3 else
+                  0 if nUmax == 2 else # 1.8 V
+                  0 if nUmax == 1 else
+                  0) # 1.7 V
+            g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}\,V'.format(round(u,2)) if nUmax>4 else r'${}\,\dots\,{}\,V$'.format(round(u,2),round(res[rn]['U_min'][0],2)) if nUmax==4 else '',
+                                                    (d_recalc['p'][n],d_recalc[nSoC][0][n]),
+                                                    textcoords="offset points",
+                                                    xytext = ((18,3.5) if nUmax==15 else
+                                                              (4.25,-5) if nUmax==14 else
+                                                              (2.5,-2) if nUmax==13 else
+                                                              (-4.5,0) if nUmax==9 else
+                                                              (-2,0) if nUmax==8 else
+                                                              (0,2) if nUmax==7 else
+                                                              (0,3) if nUmax==5 else
+                                                              (0,4.5) if nUmax==4 else
+                                                              (0,0)),
+                                                    c=farbe[10],
+                                                    size='smaller',
+                                                    ha='center',
+                                                    va='center',
+                                                    bbox=bbox_args,
+                                                    zorder=100)
+        
     n0 += nUmax
   
     # Cratemax
     nCratemax = 0
     for nCratemax,u in enumerate(limit['Cratemax']):
-        res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[n]['U_max'][0], Umin=res[n]['U_min'][0], Cratemax=u, Tmax=res[n]['T_max'][0])
+        res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[rn]['U_max'][0], Umin=res[rn]['U_min'][0], Cratemax=u, Tmax=res[rn]['T_max'][0])
         d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc, prefix_str=prefix_str, calc_EPsys=calc_EPsys)
   
         g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nCratemax+1)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[3],marker='.',markersize=4,alpha=1,lw=1)
@@ -1761,7 +1847,7 @@ def plot_EP_limit(g, zfig, zax, res, n, nSoC=0, prefix_str='cell_model[1,1].',
     for nTmax,u in enumerate(limit['Tmax']):
         if nTmax > 12:
             continue
-        res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[n]['U_max'][0], Umin=res[n]['U_min'][0], Cratemax=res[n]['Crate_max'][0], Tmax=u)
+        res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[rn]['U_max'][0], Umin=res[rn]['U_min'][0], Cratemax=res[rn]['Crate_max'][0], Tmax=u)
         d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc, prefix_str=prefix_str, calc_EPsys=calc_EPsys)
   
         g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nTmax+1)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[2],marker='.',markersize=4,alpha=1,lw=1)
@@ -1784,7 +1870,7 @@ def plot_EP_limit(g, zfig, zax, res, n, nSoC=0, prefix_str='cell_model[1,1].',
                   29 if nTmax == 10 else # 30 °C
                   29 if nTmax == 11 else 
                   31)
-            g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}\,$^\circ$C'.format(round(u,1)) if nTmax<12 else r'${}\,\dots\,{}\,^\circ$C'.format(round(u,2),round(res[n]['T_max'][0],2)) if nTmax>0 else '',
+            g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}\,$^\circ$C'.format(round(u,1)) if nTmax<12 else r'${}\,\dots\,{}\,^\circ$C'.format(round(u,2),round(res[rn]['T_max'][0],2)) if nTmax>0 else '',
                                                     (d_recalc['p'][n],d_recalc[nSoC][0][n]),
                                                     textcoords="offset points",
                                                     xytext=((12.5,14) if nTmax==12 else
@@ -1801,7 +1887,6 @@ def plot_EP_limit(g, zfig, zax, res, n, nSoC=0, prefix_str='cell_model[1,1].',
                                                     size=0.8*plot_preferences.plt.rcParams['font.size'],#'smaller',
                                                     ha='center',
                                                     va='center',
-                                                    bbox=bbox_args,
                                                     zorder=100)
     n0 += nTmax
 
@@ -1946,9 +2031,9 @@ def plot_limit_loci(g, zfig, zax, c, res, prefix_str='cell_model[1,1].',
     xvec = np.arange(xlim[0] if xlim[0]>0 else 1.0, xlim[1], 1.0)
     if 'pl_{}_{}_{}'.format(zfig,zax,120) not in g or plot_new_dp:
         g['pl_{}_{}_{}'.format(zfig,zax,120)] = g['ax_{}_{}'.format(zfig,zax)].plot(xvec,ff_hypP(xvec),color=farbe[0],alpha=dp_alpha,lw=1,zorder=100)           
-        g['pl_{}_{}_{}'.format(zfig,zax,121)] = g['ax_{}_{}'.format(zfig,zax)].plot(xxmin,ff_hypP(xxmin),marker='>',ms=6.5,color=farbe[5],mfc='1',lw=1.25,alpha=dp_alpha,zorder=100)
-        g['pl_{}_{}_{}'.format(zfig,zax,122)] = g['ax_{}_{}'.format(zfig,zax)].plot(ff_hypP(yymin),yymin,marker='>',ms=6.5,color=farbe[3],mfc='1',lw=1.25,alpha=dp_alpha,zorder=100)
-        g['pl_{}_{}_{}'.format(zfig,zax,123)] = g['ax_{}_{}'.format(zfig,zax)].plot(xxmax,ff_hypP(xxmax),marker='<',ms=6.5,color=farbe[4],mfc='1',lw=1.25,alpha=dp_alpha,zorder=100)
+        g['pl_{}_{}_{}'.format(zfig,zax,121)] = g['ax_{}_{}'.format(zfig,zax)].plot([xxmin],[ff_hypP(xxmin)],marker='>',ms=6.5,color=farbe[5],mfc='1',lw=1.25,alpha=dp_alpha,zorder=100)
+        g['pl_{}_{}_{}'.format(zfig,zax,122)] = g['ax_{}_{}'.format(zfig,zax)].plot([ff_hypP(yymin)],[yymin],marker='>',ms=6.5,color=farbe[3],mfc='1',lw=1.25,alpha=dp_alpha,zorder=100)
+        g['pl_{}_{}_{}'.format(zfig,zax,123)] = g['ax_{}_{}'.format(zfig,zax)].plot([xxmax],[ff_hypP(xxmax)],marker='<',ms=6.5,color=farbe[4],mfc='1',lw=1.25,alpha=dp_alpha,zorder=100)
         
         # Zoom Box
         xlim_zoom = g['ax_{}_{}'.format(3,0)].get_xlim()
@@ -1967,9 +2052,9 @@ def plot_limit_loci(g, zfig, zax, c, res, prefix_str='cell_model[1,1].',
         
     else:
         g['pl_{}_{}_{}'.format(zfig,zax,120)][0].set_data(xvec,ff_hypP(xvec))
-        g['pl_{}_{}_{}'.format(zfig,zax,121)][0].set_data(xxmin,ff_hypP(xxmin))
-        g['pl_{}_{}_{}'.format(zfig,zax,122)][0].set_data(ff_hypP(yymin),yymin)
-        g['pl_{}_{}_{}'.format(zfig,zax,123)][0].set_data(xxmax,ff_hypP(xxmax))
+        g['pl_{}_{}_{}'.format(zfig,zax,121)][0].set_data([xxmin],[ff_hypP(xxmin)])
+        g['pl_{}_{}_{}'.format(zfig,zax,122)][0].set_data([ff_hypP(yymin)],[yymin])
+        g['pl_{}_{}_{}'.format(zfig,zax,123)][0].set_data([xxmax],[ff_hypP(xxmax)])
         
         # Zoom Box
         xlim_zoom = g['ax_{}_{}'.format(3,0)].get_xlim()
@@ -2349,8 +2434,8 @@ def plot_constraint_intersection_trajectory(g, res, c, zfig=4,
     
     
 #%%
-def replot_EP_limits(g, res, tmp_ind, Umax, Umin, Cratemax, Tmax, zfig=1, 
-                     nPref=15, calc_EPsys=False, print_ann=False, 
+def replot_EP_limits(g, res, tmp_ind, pub_lim, zfig=1, 
+                     nPref=15, calc_EPsys=False, print_ann=False, bool_loc_ax_limits = True, 
                      prefix_str='cell_model[1,1].'):
     """
     Update and replot the Extended Ragone Plot (ERP) and measurement data
@@ -2382,16 +2467,36 @@ def replot_EP_limits(g, res, tmp_ind, Umax, Umin, Cratemax, Tmax, zfig=1,
     - Crucial for maintaining ERP accuracy under new operational limits.
     - Aids in analyzing impacts of various limits on system behavior.
     """
-    print("[Info] Submit New EP Limits")
-    print("Umax =", Umax)
-    print("Umin =", Umin)
-    print("Cratemax =", Cratemax)
-    print("Tmax =", Tmax)
+    print("\n[Info] Submit New EP Limits")
+    for key in pub_lim:
+        print('{} = {}'.format(key,pub_lim[key]['cut']))
    
     rn_min = 0
-    Imax = Cratemax * res[rn_min]['_settings']['ParameterValues']['Q_n'][0]
-   
-    res_recalc = recalc_limits(res, Umax=Umax, Umin=Umin, Cratemax=Cratemax, Tmax=Tmax, prefix_str=prefix_str)
+    
+    # deepcopy
+    pub_lim = copy.deepcopy(pub_lim)
+    
+    # calculate Umax=f(SoCmax)
+    try:
+        if pub_lim['Umax']['ocv']['calc_SoC']:
+                SoC_chg = pub_lim['Umax']['ocv']['SoC']
+                pOCV_chg = pub_lim['Umax']['ocv']['pOCV']
+                
+                get_SoC,_,_ = calc_design(SoC_chg, pOCV_chg, m=0, b=pub_lim['Umax']['cut'], show_plt=False, show_annotation=False, swapxy=False)
+                pub_lim['SoCmax'].update({'cut': get_SoC[0]})
+                bool_SoCmax = 1 if pub_lim['SoCmax']['cut']<=pub_lim['SoCmax']['val'] else 0
+    except:
+        bool_SoCmax = 0
+
+
+    res_recalc = recalc_limits(res,
+                               Umax=pub_lim['Umax']['cut'],
+                               Umin=pub_lim['Umin']['cut'],
+                               Cratemax=pub_lim['Cratemax']['cut'] ,
+                               Tmax=pub_lim['Tmax']['cut'],
+                               SoCmax=pub_lim['SoCmax']['cut'],
+                               SoCmin=pub_lim['SoCmin']['cut'],
+                               prefix_str=prefix_str)
     d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
  
     for nSoC in range(max(tmp_ind)[2]+1):
@@ -2403,80 +2508,134 @@ def replot_EP_limits(g, res, tmp_ind, Umax, Umin, Cratemax, Tmax, zfig=1,
             # g['pl_{}_{}_{}_{}'.format(zfig,0,14,nSoC)][0].set_data(d_recalc['p'],d_recalc[nSoC][4])
             
             # Point
-            g['pl_{}_{}_{}'.format(zfig,0,10)][0].set_data(d_recalc['p'][nPref],d_recalc[nSoC][0][nPref])
+            g['pl_{}_{}_{}'.format(zfig,0,10)][0].set_data([d_recalc['p'][nPref]],[d_recalc[nSoC][0][nPref]])
             
-            # Umin
-            res_recalc = recalc_limits(res, Umax=res[rn_min]['U_max'][0], Umin=Umin, Cratemax=res[rn_min]['Crate_max'][0], Tmax=res[rn_min]['T_max'][0],prefix_str=prefix_str)
-            d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
-            g['pl_{}_{}_{}_{}'.format(zfig,0,20,nSoC)][0].set_data(d_recalc['p'],d_recalc[nSoC][0])
             
-            # Imax
-            res_recalc = recalc_limits(res, Umax=res[rn_min]['U_max'][0], Umin=res[rn_min]['U_min'][0], Cratemax=Cratemax, Tmax=res[rn_min]['T_max'][0],prefix_str=prefix_str)
+            ### Indices: 20+ single limits; 40+ bidirectional limit interrelations; 99 overall limit interrelations
+            for key in pub_lim:
+                if key in ['Cratemin','Tmin']:
+                    continue
+                res_recalc = recalc_limits(res,
+                                           Umax=pub_lim['Umax']['cut'] if key=='Umax' else pub_lim['Umax']['val'],
+                                           Umin=pub_lim['Umin']['cut'] if key=='Umin' else pub_lim['Umin']['val'],
+                                           Cratemax=pub_lim['Cratemax']['cut'] if key=='Cratemax' else pub_lim['Cratemax']['val'],
+                                           Tmax=pub_lim['Tmax']['cut'] if key=='Tmax' else pub_lim['Tmax']['val'],
+                                           SoCmax=pub_lim['SoCmax']['cut'] if key=='SoCmax' else pub_lim['SoCmax']['val'],
+                                           SoCmin=pub_lim['SoCmin']['cut'] if key=='SoCmin' else pub_lim['SoCmin']['val'],
+                                           prefix_str=prefix_str)
+                d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
+                g['pl_{}_{}_{}_{}'.format(zfig,0,20+pub_lim[key]['n'],nSoC)][0].set_data(d_recalc['p'],d_recalc[nSoC][0])
+                bool_invisible = ((pub_lim[key]['type']=='lower' and pub_lim[key]['cut']<=pub_lim[key]['val']) or
+                               (pub_lim[key]['type']=='upper' and pub_lim[key]['cut']>=pub_lim[key]['val']))
+                g['pl_{}_{}_{}_{}'.format(zfig,0,20+pub_lim[key]['n'],nSoC)][0].set_visible(0 if (bool_invisible or (key=='Umax' and bool_SoCmax)) else 1)
+    
+            res_recalc = recalc_limits(res,
+                                       Umax=pub_lim['Umax']['cut'],
+                                       Umin=pub_lim['Umin']['cut'],
+                                       Cratemax=pub_lim['Cratemax']['cut'] ,
+                                       Tmax=pub_lim['Tmax']['cut'],
+                                       SoCmax=pub_lim['SoCmax']['cut'],
+                                       SoCmin=pub_lim['SoCmin']['cut'],
+                                       prefix_str=prefix_str)
             d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
-            g['pl_{}_{}_{}_{}'.format(zfig,0,21,nSoC)][0].set_data(d_recalc['p'],d_recalc[nSoC][0])
-            
-            # Umin & Imax
-            res_recalc = recalc_limits(res, Umax=res[rn_min]['U_max'][0], Umin=Umin, Cratemax=Cratemax, Tmax=res[rn_min]['T_max'][0],prefix_str=prefix_str)
-            d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
-
+    
             rel_offset = 0.0025
-            if any([Umin>res[rn_min]['U_min'][0],Cratemax<res[rn_min]['Crate_max'][0]]):
-                g['pl_{}_{}_{}_{}'.format(zfig,0,10,nSoC)][0].set_visible(0)
-                g['pl_{}_{}_{}_{}'.format(zfig,0,22,nSoC)][0].set_data(np.subtract(d_recalc['p'],rel_offset*max(d_recalc['p'])),
-                                                                    np.subtract(d_recalc[nSoC][0],rel_offset*max(d_recalc[nSoC][0])))
-                g['pl_{}_{}_{}_{}'.format(zfig,0,22,nSoC)][0].set_c(plot_preferences.plot_pre()[0][7])
-                g['pl_{}_{}_{}_{}'.format(zfig,0,22,nSoC)][0].set_lw(3.5)
-                g['pl_{}_{}_{}_{}'.format(zfig,0,22,nSoC)][0].set_zorder(0)
-            else:
+            if any([pub_lim[key]['cut']>pub_lim[key]['val'] for key in pub_lim if pub_lim[key]['type']=='lower'] or 
+                   [pub_lim[key]['cut']<pub_lim[key]['val'] for key in pub_lim if pub_lim[key]['type']=='upper']):
                 g['pl_{}_{}_{}_{}'.format(zfig,0,10,nSoC)][0].set_visible(1)
-                g['pl_{}_{}_{}_{}'.format(zfig,0,22,nSoC)][0].set_data(d_recalc['p'],d_recalc[nSoC][0])
-                g['pl_{}_{}_{}_{}'.format(zfig,0,22,nSoC)][0].set_c(plot_preferences.plot_pre()[0][0])
-                g['pl_{}_{}_{}_{}'.format(zfig,0,22,nSoC)][0].set_lw(1.5)
-                g['pl_{}_{}_{}_{}'.format(zfig,0,22,nSoC)][0].set_zorder(g['pl_{}_{}_{}_{}'.format(zfig,0,10,nSoC)][0].get_zorder()+1)
-            
-            if print_ann:
-                # P_cell_dis
-                g['an_{}_{}_{}'.format(zfig,1,100)].set_visible(1)
-                g['an_{}_{}_{}'.format(zfig,2,100)].set_visible(1)
-                # P_cell_dis_UI
-                g['pl_{}_{}_{}'.format(zfig,0,100)][0].set_visible(1)
-                g['pl_{}_{}_{}'.format(zfig,0,101)][0].set_visible(1)
-                g['an_{}_{}_{}'.format(zfig,0,100)].set_visible(1)
+                g['pl_{}_{}_{}_{}'.format(zfig,0,10,nSoC)][0].set_data(d_recalc['p'],d_recalc[nSoC][0])
+                g['pl_{}_{}_{}_{}'.format(zfig,0,99,nSoC)][0].set_data(np.subtract(d_recalc['p'],rel_offset*np.nanmax(d_recalc['p'])),
+                                                                       np.subtract(d_recalc[nSoC][0],rel_offset*np.nanmax(d_recalc[nSoC][0])))
+                g['pl_{}_{}_{}_{}'.format(zfig,0,99,nSoC)][0].set_c(plot_preferences.plot_pre()[0][7])
+                g['pl_{}_{}_{}_{}'.format(zfig,0,99,nSoC)][0].set_lw(3.5)
+                g['pl_{}_{}_{}_{}'.format(zfig,0,99,nSoC)][0].set_zorder(0)
             else:
-                # P_cell_dis
-                g['an_{}_{}_{}'.format(zfig,1,100)].set_visible(0)
-                g['an_{}_{}_{}'.format(zfig,2,100)].set_visible(0)
-                # P_cell_dis_UI
-                g['pl_{}_{}_{}'.format(zfig,0,100)][0].set_visible(0)
-                g['pl_{}_{}_{}'.format(zfig,0,101)][0].set_visible(0)
-                g['an_{}_{}_{}'.format(zfig,0,100)].set_visible(0)
+                g['pl_{}_{}_{}_{}'.format(zfig,0,10,nSoC)][0].set_visible(0)
+                g['pl_{}_{}_{}_{}'.format(zfig,0,99,nSoC)][0].set_data(d_recalc['p'],d_recalc[nSoC][0])
+                g['pl_{}_{}_{}_{}'.format(zfig,0,99,nSoC)][0].set_c(plot_preferences.plot_pre()[0][0])
+                g['pl_{}_{}_{}_{}'.format(zfig,0,99,nSoC)][0].set_lw(1.5)
+                g['pl_{}_{}_{}_{}'.format(zfig,0,99,nSoC)][0].set_zorder(g['pl_{}_{}_{}_{}'.format(zfig,0,10,nSoC)][0].get_zorder()+1)
+            
+            
+            # P_cell_dis_UI
+            loc_Umin = pub_lim['Umin']['cut'] if pub_lim['Umin']['cut']>pub_lim['Umin']['val'] else pub_lim['Umin']['val']
+            loc_Imax = (pub_lim['Cratemax']['cut'] if pub_lim['Cratemax']['cut']<pub_lim['Cratemax']['val'] else pub_lim['Cratemax']['val'])*res[rn_min]['_settings']['ParameterValues']['Q_n'][0]
+            res[rn_min]['P_UI'],res[rn_min]['E_UI'] = calc_P_UI(d_recalc['p'],d_recalc[nSoC][0],loc_Umin,loc_Imax)
+            g['pl_{}_{}_{}'.format(zfig,0,100)][0].set_xdata([res[rn_min]['P_UI']]*2)
+            g['pl_{}_{}_{}'.format(zfig,0,100)][0].set_visible(1 if print_ann else 0)
+            g['pl_{}_{}_{}'.format(zfig,0,101)][0].set_data([res[rn_min]['P_UI']],[res[rn_min]['E_UI']])
+            g['pl_{}_{}_{}'.format(zfig,0,101)][0].set_visible(1 if print_ann else 0)
+            g['an_{}_{}_{}'.format(zfig,0,100)].set_x(res[rn_min]['P_UI'])
+            g['an_{}_{}_{}'.format(zfig,0,100)].set_visible(1 if print_ann else 0)
+            
+            # P_cell_dis
+            g['an_{}_{}_{}'.format(zfig,1,100)].set_visible(1 if print_ann else 0)
+            g['an_{}_{}_{}'.format(zfig,2,100)].set_visible(1 if print_ann else 0)
         except:
             0
        
         for nP in range(max(tmp_ind)[1]+1):
             rn = [item[0] for item in tmp_ind if item[1]==nP and item[2]==nSoC][0]
-            try: # Umin
-                res_recalc = recalc_limits(res, Umax=res[rn_min]['U_max'][0], Umin=Umin, Cratemax=res[rn_min]['Crate_max'][0], Tmax=res[rn_min]['T_max'][0],prefix_str=prefix_str)
+            
+            try: # ax=1: Umin|SoCmin + Umax|Umax=f(SoCmax)|SoCmax
+                xlim = g['ax_{}_{}'.format(zfig,1)].get_xlim()
+                res_recalc = recalc_limits(res,
+                                           Umax=pub_lim['Umax']['cut'],
+                                           Umin=pub_lim['Umin']['cut'],
+                                           Cratemax=pub_lim['Cratemax']['val' if bool_loc_ax_limits else 'cut'] ,
+                                           Tmax=pub_lim['Tmax']['val' if bool_loc_ax_limits else 'cut'],
+                                           SoCmax=pub_lim['SoCmax']['cut'],
+                                           SoCmin=pub_lim['SoCmin']['cut'],
+                                           prefix_str=prefix_str)
                 d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
-                g['pl_{}_{}_{}_{}'.format(zfig,1,1,rn)][0].set_data(res_recalc[rn][prefix_str+'E_cell'],res_recalc[rn][prefix_str+'U_cell'])
-                g['pl_{}_{}_{}'.format(zfig,1,0)][0].set_ydata([Umin]*2)
-                g['an_{}_{}_{}'.format(zfig,1,0)].set_y(Umin if Umin>res[rn_min]['U_min'][0] else g['an_{}_{}_{}'.format(zfig,1,0)].xy[1])
-                g['an_{}_{}_{}'.format(zfig,1,0)].set_c(plot_preferences.plot_pre()[0][5] if Umin>res[rn_min]['U_min'][0] else plot_preferences.plot_pre()[0][0])
+                tmp_E = res_recalc[rn][prefix_str+'E_cell'] + (res[rn][prefix_str+'E_cell'][res_recalc[rn]['_settings']['recalc-limits:ind_s']-1] if res_recalc[rn]['_settings']['recalc-limits:ind_s'] > 0 else 0)
+                tmp_U = res_recalc[rn][prefix_str+'U_cell']
+                g['pl_{}_{}_{}_{}'.format(zfig,1,1,rn)][0].set_data(tmp_E,tmp_U)
+                g['pl_{}_{}_{}_{}'.format(zfig,1,1,rn)][0].set_visible(1 if len(tmp_U)>2 else 0)  # hide incorrect curve fragments
+                
+                g['pl_{}_{}_{}'.format(zfig,1,0)][0].set_ydata([pub_lim['Umin']['cut']]*2)
+                g['pl_{}_{}_{}'.format(zfig,1,0)][0].set_visible(1 if pub_lim['Umin']['cut']>pub_lim['Umin']['val'] else 0)
+                g['an_{}_{}_{}'.format(zfig,1,0)].set_y(pub_lim['Umin']['cut'] if pub_lim['Umin']['cut']>pub_lim['Umin']['val'] else g['an_{}_{}_{}'.format(zfig,1,0)].xy[1])
+                g['an_{}_{}_{}'.format(zfig,1,0)].set_c(pub_lim['Umin']['c'] if pub_lim['Umin']['cut']>pub_lim['Umin']['val'] else '0')
+                
+                loc_Umax_farbe = (pub_lim['SoCmax']['c'] if bool_SoCmax else pub_lim['Umax']['c'])
+                g['pl_{}_{}_{}'.format(zfig,1,1)][0].set_ydata([pub_lim['Umax']['cut']]*2)
+                g['pl_{}_{}_{}'.format(zfig,1,1)][0].set_visible(1 if pub_lim['Umax']['cut']<pub_lim['Umax']['val'] else 0)
+                g['pl_{}_{}_{}'.format(zfig,1,1)][0].set_c(loc_Umax_farbe)
+                g['an_{}_{}_{}'.format(zfig,1,1)].set_y(pub_lim['Umax']['cut'] if pub_lim['Umax']['cut']<pub_lim['Umax']['val'] else g['an_{}_{}_{}'.format(zfig,1,1)].xy[1])
+                g['an_{}_{}_{}'.format(zfig,1,1)].set_c(loc_Umax_farbe if pub_lim['Umax']['cut']<pub_lim['Umax']['val'] else '0')
+                g['an_{}_{}_{}'.format(zfig,1,1)].arrow_patch.set_color(g['an_{}_{}_{}'.format(zfig,1,1)].get_c())
+                
+                g['an_{}_{}_{}'.format(zfig,1,1)].xy = (xlim[-1] * (0.9 if pub_lim['Umax']['cut']<pub_lim['Umax']['val'] else 0.1),g['an_{}_{}_{}'.format(zfig,1,1)].xy[-1])
+                g['an_{}_{}_{}'.format(zfig,1,1)].set_x(xlim[-1] * (0.9 if pub_lim['Umax']['cut']<pub_lim['Umax']['val'] else 0.1))
             except:
                 0
-            try: # Cratemax
-                res_recalc = recalc_limits(res, Umax=res[rn_min]['U_max'][0], Umin=res[rn_min]['U_min'][0], Cratemax=Cratemax, Tmax=res[rn_min]['T_max'][0],prefix_str=prefix_str)
+            
+            try: # ax=2: Cratemax
+                res_recalc = recalc_limits(res,
+                                           Umax=pub_lim['Umax']['val' if bool_loc_ax_limits else 'cut'],
+                                           Umin=pub_lim['Umin']['val' if bool_loc_ax_limits else 'cut'],
+                                           Cratemax=pub_lim['Cratemax']['cut'] ,
+                                           Tmax=pub_lim['Tmax']['val' if bool_loc_ax_limits else 'cut'],
+                                           SoCmax=pub_lim['SoCmax']['val' if bool_loc_ax_limits else 'cut'],
+                                           SoCmin=pub_lim['SoCmin']['val' if bool_loc_ax_limits else 'cut'],
+                                           prefix_str=prefix_str)
                 d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
-                g['pl_{}_{}_{}_{}'.format(zfig,2,1,rn)][0].set_data(res_recalc[rn][prefix_str+'E_cell'],res_recalc[rn][prefix_str+'I_cell'])
-                g['pl_{}_{}_{}'.format(zfig,2,0)][0].set_ydata([Imax]*2)
-                g['an_{}_{}_{}'.format(zfig,2,0)].set_y(Imax if Cratemax<res[rn_min]['Crate_max'][0] else g['an_{}_{}_{}'.format(zfig,2,0)].xy[1])
-                g['an_{}_{}_{}'.format(zfig,2,0)].set_c(plot_preferences.plot_pre()[0][3] if Cratemax<res[rn_min]['Crate_max'][0] else plot_preferences.plot_pre()[0][0])
+                tmp_E = res_recalc[rn][prefix_str+'E_cell'] + (res[rn][prefix_str+'E_cell'][res_recalc[rn]['_settings']['recalc-limits:ind_s']-1] if res_recalc[rn]['_settings']['recalc-limits:ind_s'] > 0 else 0)
+                tmp_I = res_recalc[rn][prefix_str+'I_cell']
+                g['pl_{}_{}_{}_{}'.format(zfig,2,1,rn)][0].set_data(tmp_E,tmp_I)
+
+                loc_Imax = pub_lim['Cratemax']['cut'] * res[rn_min]['_settings']['ParameterValues']['Q_n'][0]
+                g['pl_{}_{}_{}'.format(zfig,2,0)][0].set_ydata([loc_Imax]*2)
+                g['pl_{}_{}_{}'.format(zfig,2,0)][0].set_visible(1 if pub_lim['Cratemax']['cut']<pub_lim['Cratemax']['val'] else 0)
+                g['an_{}_{}_{}'.format(zfig,2,0)].set_y(loc_Imax if pub_lim['Cratemax']['cut']<pub_lim['Cratemax']['val'] else g['an_{}_{}_{}'.format(zfig,2,0)].xy[1])
+                g['an_{}_{}_{}'.format(zfig,2,0)].set_c(pub_lim['Cratemax']['c'] if pub_lim['Cratemax']['cut']<pub_lim['Cratemax']['val'] else '0')
             except:
                 0
-       
+            
     # limits
     # g['pl_{}_{}_{}'.format(zfig,1,2)][0].set_data(xlim,[res_recalc[rn_min_recalc]['U_min'][0]]*2)
     # g['pl_{}_{}_{}'.format(zfig,1,3)][0].set_data(xlim,[res_recalc[rn_min_recalc]['U_max'][0]]*2)
     # g['pl_{}_{}_{}'.format(zfig,2,2)][0].set_data(xlim,[res_recalc[rn_min_recalc]['Crate_max'][0]]*2)
    
-    plt.draw()    
+    plt.draw()

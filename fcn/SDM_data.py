@@ -42,25 +42,21 @@ import pickle
 import numpy as np
 from scipy import interpolate
 
-import xls2dict_digidata
+import xls2dict_digidata as xls2dict_digidata
 
 #%%
-def load_results(no,prefix_str='cell_model[1,1].'):
+def load_results(no,print_bat_list=False):
     """
-    Loads and processes experimental data for energy storage systems from 
-    specified experiments. It handles data retrieval, cleaning, and structuring, 
-    making it suitable for analysis in energy system design. Manages various 
-    datasets, identified by 'no', and adjusts key names, calculates derived 
-    parameters, and sets plot limits.
+    Loads and processes experimental data for specific energy storage system 
+    experiments. This function retrieves data, derived parameters and plot
+    limits for energy system analysis.
     
     Parameters:
     - no (int): Identifier for the specific dataset to be loaded.
-    - prefix_str (str, optional): Identifier for the sub-model in result keys. 
-      Defaults to 'cell_model[1,1].'.
     
     Returns:
     - list: A list of dictionaries with processed data from each experiment. 
-      Includes adjusted key names, derived parameters, and plot limits for the 
+      Includes experimental data, parameters, and plot limits for the 
       System Design Method.
     
     Note:
@@ -69,47 +65,227 @@ def load_results(no,prefix_str='cell_model[1,1].'):
     - Part of a toolkit for designing and analyzing energy storage systems.
     """
     
+    # List of Battery Cells
+    batteries = {0:    'LTO20130205-03',
+                 1:    'LTO20130205-05',
+                 2:    'MJ1-1119-01',
+                 3:    'MJ1-1119-02',
+                 4:    'SCiB-23Ah-01',
+                 5:    'SCiB-23Ah-02',
+                 6:    'HE2-1123-01',
+                 7:    'HE2-1123-02',
+                 8:    'M1B-1223-01',
+                 9:    'M1B-1223-02',
+                 10:   'SLPB8644143-45',
+                 11:   'SLPB8644143-353'}
+    
+    if print_bat_list:
+        print('List of Battery Cells:')
+        for key in batteries:
+            print(key,'-',batteries[key])
+    
     res = []
+    no = float(no)
     
-    # dis
-    if (no==0):
+    ## dis [0 - 99]
+    if (no==0.0):
         fn = 'Scienlab__LTO20130205__LTO20130205-03__PowerTemperatureTest_dis#3'
-    if (no==1):
+    if (no==1.0):
         fn = 'Scienlab__LTO20130205__LTO20130205-05__PowerTemperatureTest_dis#3'
-    if (no==2):
+    if (no==2.0):
         fn = 'Scienlab__18650 MJ1__MJ1-1119-01__PowerTemperatureTest_dis#2'
-    if (no==3):
+    if (no==3.0):
         fn = 'Scienlab__18650 MJ1__MJ1-1119-02__PowerTemperatureTest_dis#2'
-    if (no==4):
+    if (no==4.0):
         fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-01__PowerTemperatureTest_dis#1'
-    if (no==5):
+    if (no==5.0):
         fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-02__PowerTemperatureTest_dis#1'
-    
-    # # chg
-    # if (no==104):
-    #     fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-01__PowerTemperatureTest_chg#1'
-    # if (no==105):
-    #     fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-02__PowerTemperatureTest_chg#1'
+    if (no==10.0):
+        fn = 'Scienlab__SLPB8644143__SLPB8644143-45__PowerTemperatureTest_dis#1'
+    if (no==10.1):
+        fn = 'Scienlab__SLPB8644143__SLPB8644143-45__PowerTemperatureTest_dis#2'    
+    if (no==11.0):
+        fn = 'Scienlab__SLPB8644143__SLPB8644143-353__PowerTemperatureTest_dis#1'
+    if (no==11.1):
+        fn = 'Scienlab__SLPB8644143__SLPB8644143-353__PowerTemperatureTest_dis#2'
+
+    ## chg [100 - 199]
+    if (no==104.0):
+        fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-01__PowerTemperatureTest_chg#1'
+    if (no==105.0):
+        fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-02__PowerTemperatureTest_chg#1'
         
-    # # Variation of Umax
-    # if (no==200):
-    #     fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-01__PowerTemperatureTest_dis-Umax#1_nU-0'
-    # if (no==201):
-    #     fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-01__PowerTemperatureTest_dis-Umax#1_nU-1'
-    # if (no==202):
-    #     fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-01__PowerTemperatureTest_dis-Umax#1_nU-2'
-    
+    ## Variation of Umax [200 - 299]   
+    if (no==204.0):
+        fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-01__PowerTemperatureTest_dis-Umax#1'
+    if (no==205.0):
+        fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-02__PowerTemperatureTest_dis-Umax#1'
+    if (no==206.0):
+        fn = 'Scienlab__ICR18650 HE2__HE2-1123-01__PowerTemperatureTest_dis-Umax#1'
+    if (no==208.0):
+        fn = 'Scienlab__ANR26650m1B__M1B-1223-01__PowerTemperatureTest_dis-Umax-inclOCV#1'
+    if (no==210.0):
+        fn = 'Scienlab__SLPB8644143__SLPB8644143-45__PowerTemperatureTest_dis-Umax-manual#1'
+    if (no==211.0):
+        fn = 'Scienlab__SLPB8644143__SLPB8644143-353__PowerTemperatureTest_dis-Umax-manual#1'
+        
     res = pickle.load(open('{}/data/ess/{}.pickle'.format('.',fn),'rb'))
     
-    # clean raw data
-    if (no==0):
-        rn = 11
-        for key in res[rn]:
-            if isinstance(res[rn][key],np.ndarray):
-                res[rn][key] = res[rn][key][:-3]
     
+    #%% clean raw data
+    ## dis
+    if (fn=='Scienlab__LTO20130205__LTO20130205-03__PowerTemperatureTest_dis#3'):
+        del_rn = {11: -3}
+        
+        for rn in del_rn:
+            for key in res[rn]:
+                if isinstance(res[rn][key],np.ndarray):
+                    res[rn][key] = res[rn][key][:del_rn[rn]]
+    elif (fn=='Scienlab__SLPB8644143__SLPB8644143-45__PowerTemperatureTest_dis#1'):
+        del_rn = {1: -1,
+                  4: -1,
+                  12: -2}
+        
+        for rn in del_rn:
+            for key in res[rn]:
+                if isinstance(res[rn][key],np.ndarray):
+                    res[rn][key] = res[rn][key][:del_rn[rn]]
+    elif (fn=='Scienlab__SLPB8644143__SLPB8644143-45__PowerTemperatureTest_dis#2'):
+        del_rn = {16: -2}
+        
+        for rn in del_rn:
+            for key in res[rn]:
+                if isinstance(res[rn][key],np.ndarray):
+                    res[rn][key] = res[rn][key][:del_rn[rn]]
+    elif (fn=='Scienlab__SLPB8644143__SLPB8644143-353__PowerTemperatureTest_dis#1'):
+        del_rn = {8: -3,
+                  20: -3,
+                  24: -2}
+        
+        for rn in del_rn:
+            for key in res[rn]:
+                if isinstance(res[rn][key],np.ndarray):
+                    res[rn][key] = res[rn][key][:del_rn[rn]]
     
-    # adjust key names
+    ## Variation of Umax
+    if (fn=='Scienlab__SCiB 23Ah__SCiB-23Ah-01__PowerTemperatureTest_dis-Umax#1'):
+        del_rn = {}
+        del_rn['indU=0'] = {2: -1}
+        
+        for ref_key in del_rn:
+            for rn in del_rn[ref_key]:
+                for key in res[ref_key][rn]:
+                    if isinstance(res[ref_key][rn][key],np.ndarray):
+                        res[ref_key][rn][key] = res[ref_key][rn][key][:del_rn[ref_key][rn]]            
+    if (fn=='Scienlab__ICR18650 HE2__HE2-1123-01__PowerTemperatureTest_dis-Umax#1'):
+        del_rn = {}       
+        # remove indices from power regimes
+        for key in res:
+            del_rn[key] = {0: 0}
+        del_rn['indU=0'].update({12: -3}) 
+        
+        for ref_key in del_rn:
+            for rn in del_rn[ref_key]:
+                for key in res[ref_key][rn]:
+                    if isinstance(res[ref_key][rn][key],np.ndarray):
+                        res[ref_key][rn][key] = res[ref_key][rn][key][:del_rn[ref_key][rn]]
+    
+    ## Variation of Umax +OCV
+    if (fn=='Scienlab__ANR26650m1B__M1B-1223-01__PowerTemperatureTest_dis-Umax-inclOCV#1'):
+        del_rn = {}
+        pop_rn = {}
+        
+        # remove indices from power regimes
+        for key in res:
+            if key != 'ocv':
+                del_rn[key] = {0: 0} # each smallest
+
+        del_rn['indU=2'].update({15: -4})
+        
+        # remove full power regimes
+        for key in ['indU=2', 'indU=3']:
+            pop_rn[key] = [k for k in range(len(res[key])) if k%2]
+
+        pop_rn['indU=2'] += [43,44]
+        pop_rn['indU=2'] = list(set(pop_rn['indU=2']))  # remove duplicates
+                            
+        for ref_key in del_rn:
+            for rn in del_rn[ref_key]:
+                for key in res[ref_key][rn]:
+                    if isinstance(res[ref_key][rn][key],np.ndarray):
+                        res[ref_key][rn][key] = res[ref_key][rn][key][:del_rn[ref_key][rn]]
+        
+        for ref_key in pop_rn:
+            for rn in sorted(pop_rn[ref_key],reverse=True):
+                res[ref_key].pop(rn)
+            
+            try: # adjust numbers after removing odd-numbered power regimes 
+                for rn in range(len(res[ref_key])):
+                    if ~(res[ref_key][rn]['ind_C_']%2):
+                        res[ref_key][rn]['ind_C_'] = int(res[ref_key][rn]['ind_C_']/2)
+            except:
+                 0
+    
+    if (fn=='Scienlab__SLPB8644143__SLPB8644143-45__PowerTemperatureTest_dis-Umax-manual#1' or
+        fn=='Scienlab__SLPB8644143__SLPB8644143-353__PowerTemperatureTest_dis-Umax-manual#1'):
+        del_rn = {}
+        pop_rn = {}
+        
+        # remove indices from power regimes
+        if (fn=='Scienlab__SLPB8644143__SLPB8644143-45__PowerTemperatureTest_dis-Umax-manual#1'):
+            del_rn['indU=0'] = {16: -2} 
+        elif (fn=='Scienlab__SLPB8644143__SLPB8644143-353__PowerTemperatureTest_dis-Umax-manual#1'):
+            for key in res:
+                if key != 'ocv':
+                    del_rn[key] = {0: 0} # each smallest
+            del_rn['indU=0'].update({9: -3}) 
+            
+        # remove full power regimes
+        for key in ['indU=0']:
+            pop_rn[key] = [k for k in range(len(res[key])) if k%2]
+        
+        for ref_key in del_rn:
+            for rn in del_rn[ref_key]:
+                for key in res[ref_key][rn]:
+                    if isinstance(res[ref_key][rn][key],np.ndarray):
+                        res[ref_key][rn][key] = res[ref_key][rn][key][:del_rn[ref_key][rn]]
+        
+        for ref_key in pop_rn:
+            for rn in sorted(pop_rn[ref_key],reverse=True):
+                res[ref_key].pop(rn)
+            
+            try: # adjust numbers after removing odd-numbered power regimes 
+                for rn in range(len(res[ref_key])):
+                    if ~(res[ref_key][rn]['ind_C_']%2):
+                        res[ref_key][rn]['ind_C_'] = int(res[ref_key][rn]['ind_C_']/2)
+            except:
+                 0
+        
+    return res
+
+
+#%%
+def adjust_res_keys(res,prefix_str='cell_model[1,1].'):
+    """
+    Adjusts keys and processes data within the results list from energy storage 
+    system experiments. This includes renaming keys, calculating additional 
+    parameters, and setting plot limits based on experimental settings.
+
+    Parameters:
+    - res (list): A list of dictionaries, each containing data from a single experiment.
+    - prefix_str (str, optional): Prefix for keys in the result dictionaries to 
+      indicate specific sub-model data. Defaults to 'cell_model[1,1].'.
+
+    Returns:
+    - list: The same list of dictionaries with adjusted keys and additional 
+      parameters for further analysis.
+
+    Note:
+    - Assumes a specific structure for the input data. Adaptations may be necessary 
+      for different data formats or experimental setups.
+    - Intended for use within a broader toolkit for energy storage system analysis.
+    """
+    
     for n,_ in enumerate(res):
         res[n]['_nP'] = res[n].pop('ind_C_')
         res[n]['_nSoC'] = 0
@@ -120,24 +296,29 @@ def load_results(no,prefix_str='cell_model[1,1].'):
         # res[n][prefix_str+'P_cell'] = res[n].pop('P_W')
         
         # res[n][prefix_str+'P_cell'] = [np.average(res[n]['P_W'])]*len(res[n]['P_W'])
-        tmp_Pmin = res[n]['_settings']['ParameterValues']['U_max'][0]*res[n]['_settings']['ParameterValues']['I_cut'][0]
-        tmp_Pmax = res[n]['_settings']['ParameterValues']['U_max'][0]*res[n]['_settings']['ParameterValues']['I_dis_max'][0]
-        res[n][prefix_str+'P_cell'] = [tmp_Pmin+n/50*(tmp_Pmax-tmp_Pmin)]*len(res[n]['P_W'])
+        tmp_Pmin = abs(res[n]['_settings']['ParameterValues']['U_max'][0]*res[n]['_settings']['ParameterValues']['I_cut'][0])
+        tmp_Pmax = abs(res[n]['_settings']['ParameterValues']['U_max'][0]*res[n]['_settings']['ParameterValues']['I_dis_max'][0])
+        
+        ref_n_max = 10 if len(res) <=10 else 25 if len(res)-1 <=25 else 50 # CAUTION HERE!
+        
+        res[n][prefix_str+'P_cell'] = [tmp_Pmin+n/ref_n_max*(tmp_Pmax-tmp_Pmin)]*len(res[n]['P_W'])
 
         res[n][prefix_str+'U_cell'] = res[n].pop('U_V')
         res[n][prefix_str+'I_cell'] = res[n].pop('I_A')
         res[n][prefix_str+'Crate'] = res[n][prefix_str+'I_cell']/res[n]['_settings']['ParameterValues']['Q_n'][0]
 
         res[n][prefix_str+'T_cell'] = res[n].pop('T_2_C')
-        key_Qref = [key for key in res[n]['_settings']['ParameterValues'] if 'Q_SCT' in key][-1]
-        # key_Qref = 'Q_n'
+        # key_Qref = [key for key in res[n]['_settings']['ParameterValues'] if 'Q_SCT' in key][-1]
+        key_Qref = 'Q_n'
         res[n][prefix_str+'SoC'] = 1 + res[n]['Qneg_As']/3600/res[n]['_settings']['ParameterValues'][key_Qref][0]
 
         # Limits   
         res[n]['U_max'] = res[n]['_settings']['ParameterValues']['U_max']
         res[n]['U_min'] = res[n]['_settings']['ParameterValues']['U_min']
-        res[n]['_settings']['ParameterValues']['I_dis_max'] = res[n]['_settings']['ParameterValues']['I_dis_max']
+        # res[n]['_settings']['ParameterValues']['I_dis_max'] = res[n]['_settings']['ParameterValues']['I_dis_max']
         res[n]['I_dis_max'] = res[n]['_settings']['ParameterValues']['I_dis_max']
+        res[n]['I_chg_max'] = res[n]['_settings']['ParameterValues']['I_chg_max']
+        res[n]['I_cut'] = res[n]['_settings']['ParameterValues']['I_cut']        
         
         res[n]['_settings']['ParameterValues']['Crate_max'] = res[n]['_settings']['ParameterValues']['I_dis_max']/res[n]['_settings']['ParameterValues']['Q_n'][0]
         res[n]['Crate_max'] = res[n]['_settings']['ParameterValues']['Crate_max']
