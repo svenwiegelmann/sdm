@@ -59,9 +59,9 @@ tic_all = time.time()
 get_ipython().magic('reset -sf')
 plt.close('all')
 
-import plot_preferences
-import SDM_fcn
-import SDM_data
+import plot_preferences as plot_preferences
+import SDM_fcn as SDM_fcn
+import SDM_data as SDM_data
 
 
 if __name__ == "__main__":
@@ -98,7 +98,22 @@ if __name__ == "__main__":
     
 
     # Input: Cell-based (Measurement) Data of Energy Storage System
-    res = SDM_data.load_results(0,prefix_str=prefix_str)    
+    load_res = SDM_data.load_results(0,True)
+    
+    
+    if isinstance(load_res,list):
+        load_res_keys = []
+        load_res = SDM_data.adjust_res_keys(load_res,prefix_str=prefix_str)
+        res = load_res
+    else:
+        load_res_keys = list(load_res.keys())
+        for n,key in enumerate(load_res_keys):
+            load_res[key] = SDM_data.adjust_res_keys(load_res[key],prefix_str=prefix_str)
+            if n>0: # sort initial DIS processes of 'indU'-loops
+                load_res[load_res_keys[n-1]][0] = load_res[key][0]
+    
+        key_res = 'indU=0'
+        res = load_res[key_res]
     
     # Evaluation of Parameters for ERP Generation 
     d, tmp_ind, rn_min = SDM_fcn.compile_EP(res,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
@@ -260,20 +275,63 @@ if __name__ == "__main__":
     """
 
     # Plot Preferences
-    farbe, z, g, fig_size, lstyle = plot_preferences.plot_pre()        
+    farbe, z, g, fig_size, lstyle = plot_preferences.plot_pre()
+    
+    set_figsize = {'h1':[fig_size[-1]]*2,
+                   'h2':[fig_size[-1]*2.05,fig_size[-1]],
+                   'h3':[fig_size[-1]*2.95,fig_size[-1]*1.05]}
+
+    alph = 1/3
+
 
     #%%
     # Plot: Charge/Discharge Curves U(E), I(E), Derivation of the Extended Ragone Plot (ERP)
     # -------------------------------------------------------------------------  
-    z = 1
-        
     nPref = 15
-    pub_cut_Umin = 1.95
-    pub_cut_Cratemax = 4.25
 
+    pub_lim = {'Umax':      {'n':    1,
+                             'val':  res[rn_min]['U_max'][0],
+                             'type': 'upper',
+                             'c':    farbe[10]},
+               'Umin':      {'n':    2,
+                             'val':  res[rn_min]['U_min'][0],
+                             'type': 'lower',
+                             'c':    farbe[5]},
+               'Cratemax':  {'n':    3,
+                             'val':  res[rn_min]['Crate_max'][0],
+                             'type': 'upper',
+                             'c':    farbe[3]},
+               'Cratemin':  {'n':    4,
+                             'val':  np.nan,
+                             'type': 'lower',
+                             'c':    'y'},
+               'Tmax':      {'n':    5,
+                             'val':  res[rn_min]['T_max'][0],
+                             'type': 'upper',
+                             'c':    farbe[2]},
+               'Tmin':      {'n':    6,
+                             'val':  np.nan,
+                             'type': 'lower',
+                             'c':    'y'},
+               'SoCmax':    {'n':    7,
+                             'val':  1.2,
+                             'type': 'upper',
+                             'c':    farbe[4]},
+               'SoCmin':    {'n':    8,
+                             'val':  -0.2,
+                             'type': 'lower',
+                             'c':    farbe[8]}}
+    for key in pub_lim:
+        pub_lim[key]['cut'] = pub_lim[key]['val']
+
+    ## Calculate specific Operating Limits
+    # pub_lim['Umin']['cut'] = 1.95
+    # pub_lim['Cratemax']['cut'] = 4.25
+
+    z = 1
     grid = plt.GridSpec(1,3, wspace=0.55, hspace=0.05)
     if 'fig_{}'.format(z) not in g:
-        g['fig_{}'.format(z)] = plt.figure(z,figsize=[fig_size[-1]*2.95,fig_size[-1]*1.05])
+        g['fig_{}'.format(z)] = plt.figure(z,figsize=set_figsize['h3'])
 
 
     # ax 0
@@ -282,14 +340,7 @@ if __name__ == "__main__":
         # g['ax_{}_{}'.format(z,0)].grid()
     
     nSoC = 0
-    nUmin = 0
-    nUmax = 0
-    nCratemax = 0
-    nTmax = 0
-    nSoCmin = 0
-    n0 = 0
     alph = 1/3
-   
     
     g['pl_{}_{}_{}_{}'.format(z,0,0,nSoC)] = g['ax_{}_{}'.format(z,0)].plot(d['p'],d[nSoC][0],color=farbe[nSoC],marker='.',markersize=4,label='{}'.format(round(SoC_set[nSoC],1)),lw=0.75,alpha=alph)
     # g['pl_{}_{}_{}_{}'.format(z,0,1,nSoC)] = g['ax_{}_{}'.format(z,0)].plot(d['p'],d[nSoC][1],color=farbe[nSoC],marker='v',markersize=4,ls='None',alpha=alph)
@@ -303,12 +354,11 @@ if __name__ == "__main__":
     # g['pl_{}_{}_{}_{}'.format(z,0,12,nSoC)] = g['ax_{}_{}'.format(z,0)].plot(d_recalc['p'],d_recalc[nSoC][2],color=farbe[nSoC],marker='o',markersize=6,ls='None')
     # g['pl_{}_{}_{}_{}'.format(z,0,13,nSoC)] = g['ax_{}_{}'.format(z,0)].plot(d_recalc['p'],d_recalc[nSoC][3],color=farbe[nSoC],marker='d',markersize=6,ls='None')
     # g['pl_{}_{}_{}_{}'.format(z,0,14,nSoC)] = g['ax_{}_{}'.format(z,0)].plot(d_recalc['p'],d_recalc[nSoC][4],color=farbe[nSoC],marker='s',markersize=6,ls='None')
-   
+
     try:
         g['pl_{}_{}_{}'.format(z,0,10)] = g['ax_{}_{}'.format(z,0)].plot(d_recalc['p'][nPref],d_recalc[nSoC][0][nPref],color=farbe[2],marker='o',markersize=6,lw=1.5,zorder=100)
     except:
         0
-    
     
     # P_UI
     res[rn_min]['P_UI'],res[rn_min]['E_UI'] = SDM_fcn.calc_P_UI(d_recalc['p'],d[nSoC][0],res[rn_min]['U_min'][0],res[rn_min]['I_dis_max'][0])
@@ -319,30 +369,43 @@ if __name__ == "__main__":
     bbox_args = dict(boxstyle="round",color='None',fc='1',lw=0)
     g['an_{}_{}_{}'.format(z,0,100)] = g['ax_{}_{}'.format(z,0)].annotate(r'$P^\mathrm{dis}_\mathrm{cell,UI}$',
                                       (res[rn_min]['P_UI'],0.95*res[rn_min]['lim_E_dis_max']),
-                                      textcoords="offset points",
-                                      xytext=(0,0),
+                                      # textcoords="offset points",
+                                      # xytext=(0,0),
                                       ha='center',
                                       va='center',
                                       c=farbe[12],
                                       bbox=bbox_args,
                                       zorder=100)
     
+    ### Indices: 20+ single limits; 40+ bidirectional limit interrelations; 99 overall limit interrelations    
+    for key in pub_lim:
+        if key in ['Cratemin','Tmin']:
+            continue
+        res_recalc = SDM_fcn.recalc_limits(res,
+                                           Umax=pub_lim['Umax']['cut'] if key=='Umax' else pub_lim['Umax']['val'],
+                                           Umin=pub_lim['Umin']['cut'] if key=='Umin' else pub_lim['Umin']['val'],
+                                           Cratemax=pub_lim['Cratemax']['cut'] if key=='Cratemax' else pub_lim['Cratemax']['val'],
+                                           Tmax=pub_lim['Tmax']['cut'] if key=='Tmax' else pub_lim['Tmax']['val'],
+                                           SoCmax=pub_lim['SoCmax']['cut'] if key=='SoCmax' else pub_lim['SoCmax']['val'],
+                                           SoCmin=pub_lim['SoCmin']['cut'] if key=='SoCmin' else pub_lim['SoCmin']['val'],
+                                           prefix_str=prefix_str)
+        d_recalc, tmp_ind_recalc, rn_min_recalc = SDM_fcn.compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
+        g['pl_{}_{}_{}_{}'.format(z,0,20+pub_lim[key]['n'],nSoC)] = g['ax_{}_{}'.format(z,0)].plot(d_recalc['p'],d_recalc[nSoC][0],color=pub_lim[key]['c'],marker='.',markersize=4,lw=1)
     
-    # Umin
-    res_recalc = SDM_fcn.recalc_limits(res, Umax=res[rn_min]['U_max'][0], Umin=pub_cut_Umin, Cratemax=res[rn_min]['Crate_max'][0], Tmax=res[rn_min]['T_max'][0],prefix_str=prefix_str)
+
+    # overall   
+    res_recalc = SDM_fcn.recalc_limits(res,
+                                       Umax=pub_lim['Umax']['cut'],
+                                       Umin=pub_lim['Umin']['cut'],
+                                       Cratemax=pub_lim['Cratemax']['cut'] ,
+                                       Tmax=pub_lim['Tmax']['cut'],
+                                       SoCmax=pub_lim['SoCmax']['cut'],
+                                       SoCmin=pub_lim['SoCmin']['cut'],
+                                       prefix_str=prefix_str)
     d_recalc, tmp_ind_recalc, rn_min_recalc = SDM_fcn.compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
-    g['pl_{}_{}_{}_{}'.format(z,0,20,nSoC)] = g['ax_{}_{}'.format(z,0)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[5],marker='.',markersize=4,lw=1)
-   
-    # Imax
-    res_recalc = SDM_fcn.recalc_limits(res, Umax=res[rn_min]['U_max'][0], Umin=res[rn_min]['U_min'][0], Cratemax=pub_cut_Cratemax, Tmax=res[rn_min]['T_max'][0],prefix_str=prefix_str)
-    d_recalc, tmp_ind_recalc, rn_min_recalc = SDM_fcn.compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
-    g['pl_{}_{}_{}_{}'.format(z,0,21,nSoC)] = g['ax_{}_{}'.format(z,0)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[3],marker='.',markersize=4,lw=1)
-   
-    # Umin & Imax
-    res_recalc = SDM_fcn.recalc_limits(res, Umax=res[rn_min]['U_max'][0], Umin=pub_cut_Umin, Cratemax=pub_cut_Cratemax, Tmax=res[rn_min]['T_max'][0],prefix_str=prefix_str)
-    d_recalc, tmp_ind_recalc, rn_min_recalc = SDM_fcn.compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
-    g['pl_{}_{}_{}_{}'.format(z,0,22,nSoC)] = g['ax_{}_{}'.format(z,0)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[0],marker='.',markersize=6,lw=1.5)
-   
+    g['pl_{}_{}_{}_{}'.format(z,0,99,nSoC)] = g['ax_{}_{}'.format(z,0)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[0],marker='.',markersize=6,lw=1.5)
+
+
    
     # Legende
     # if rn == lres[0]:
@@ -382,10 +445,10 @@ if __name__ == "__main__":
             except:
                 0
     
-    xlim = [0,85]
+    xlim = [0,10 if sim_limits else res[rn_min]['lim_E_dis_max']]
     
-    g['ax_{}_{}'.format(z,1)].plot(xlim,[res[rn_min]['U_min'][0]]*2,linestyle='dashed',color=[0]*3,lw=1,zorder=1)
-    g['ax_{}_{}'.format(z,1)].plot(xlim,[res[rn_min]['U_max'][0]]*2,linestyle='dashed',color=[0]*3,lw=1,zorder=1)
+    g['ax_{}_{}'.format(z,1)].plot(xlim,[pub_lim['Umin']['val']]*2,linestyle='dashed',color=[0]*3,lw=1,zorder=1)
+    g['ax_{}_{}'.format(z,1)].plot(xlim,[pub_lim['Umax']['val']]*2,linestyle='dashed',color=[0]*3,lw=1,zorder=1)
 
     # Annotations
     bbox_args = dict(boxstyle="round",color='None',fc='1',lw=0)
@@ -399,7 +462,7 @@ if __name__ == "__main__":
                                         # fontsize='large',
                                         bbox=bbox_args,
                                         arrowprops = dict(arrowstyle="<|-",color=farbe[5]),
-                                        zorder=102)
+                                        zorder=99)
     # bbox_args = dict(boxstyle="round",color='None',fc='1',lw=0)
     g['an_{}_{}_{}'.format(z,1,1)] = g['ax_{}_{}'.format(z,1)].annotate(r'$U_\mathrm{cell,max}$',
                                         (0.1*xlim[-1],res[rn_min]['U_max'][0]),
@@ -409,11 +472,13 @@ if __name__ == "__main__":
                                         va='center',
                                         # fontsize='large',
                                         bbox=bbox_args,
-                                        arrowprops = dict(arrowstyle="<|-",color=farbe[5]),
-                                        zorder=102)
+                                        arrowprops = dict(arrowstyle="<|-",connectionstyle="angle,angleA=90,angleB=0,rad=0",color=farbe[4]),
+                                        zorder=99)
     
-    g['pl_{}_{}_{}'.format(z,1,0)] = g['ax_{}_{}'.format(z,1)].plot(xlim,[pub_cut_Umin]*2,color=farbe[5],lw=1,ls='dashed',zorder=101)
-
+    g['pl_{}_{}_{}'.format(z,1,0)] = g['ax_{}_{}'.format(z,1)].plot(xlim,[pub_lim['Umin']['val']]*2,color=pub_lim['Umin']['c'],lw=1,ls='dashed',zorder=98)
+    g['pl_{}_{}_{}'.format(z,1,0)][0].set_visible(0)
+    g['pl_{}_{}_{}'.format(z,1,1)] = g['ax_{}_{}'.format(z,1)].plot(xlim,[pub_lim['Umax']['val']]*2,color=pub_lim['Umax']['c'],lw=1,ls='dashed',zorder=98)
+    g['pl_{}_{}_{}'.format(z,1,1)][0].set_visible(0)
             
     # Labeling
     # g['ax_{}_{}'.format(z,i)].set_title('Simulation {}'.format(len(res)))
@@ -464,13 +529,14 @@ if __name__ == "__main__":
                                       # fontsize='large',
                                       bbox=bbox_args,
                                       arrowprops = dict(arrowstyle="<|-",color=farbe[3]),
-                                      zorder=102)
+                                      zorder=99)
     # set zorder of 2Dline above annotation
-    g['pl_{}_{}_{}_{}'.format(z,2,1,36)][0].set_zorder(g['an_{}_{}_{}'.format(z,2,0)].get_zorder()+1)
+    # g['pl_{}_{}_{}_{}'.format(z,2,1,36)][0].set_zorder(g['an_{}_{}_{}'.format(z,2,0)].get_zorder()+1)
 
     
     # g['ax_{}_{}'.format(z,2)].plot(xlim,[res[rn_min]['Crate_max'][0]]*2,linestyle='dashed',color=[0]*3,lw=1.5,zorder=1)
-    g['pl_{}_{}_{}'.format(z,2,0)] = g['ax_{}_{}'.format(z,2)].plot(xlim,[pub_cut_Cratemax*res[rn_min]['_settings']['ParameterValues']['Q_n'][0]]*2,color=farbe[3],ls='dashed',lw=1,zorder=101)
+    g['pl_{}_{}_{}'.format(z,2,0)] = g['ax_{}_{}'.format(z,2)].plot(xlim,[pub_lim['Cratemax']['val']*res[rn_min]['_settings']['ParameterValues']['Q_n'][0]]*2,color=pub_lim['Cratemax']['c'],ls='dashed',lw=1,zorder=98)
+    g['pl_{}_{}_{}'.format(z,2,0)][0].set_visible(0)
 
     # Labeling
     # g['ax_{}_{}'.format(z,i)].set_title('Simulation {}'.format(len(res)))
@@ -484,11 +550,13 @@ if __name__ == "__main__":
     plot_preferences.print_num_subplot(g['ax_{}_{}'.format(z,0)],'c')
     plot_preferences.print_num_subplot(g['ax_{}_{}'.format(z,1)],'a')
     plot_preferences.print_num_subplot(g['ax_{}_{}'.format(z,2)],'b')
-
+    
+    xlim = g['ax_{}_{}'.format(z,1)].get_xlim()
+    ylim = g['ax_{}_{}'.format(z,1)].get_ylim()
     g['an_{}_{}_{}'.format(z,1,100)] = g['ax_{}_{}'.format(z,1)].annotate(r'$P^\mathrm{dis}_\mathrm{cell} \uparrow$',
-                                      (60,2.225),
+                                      (xlim[0]+0.71*(xlim[1]-xlim[0]),ylim[0]+0.52*(ylim[1]-ylim[0])),
                                       # textcoords="offset points",
-                                      xytext=(30,1.925),
+                                      xytext=(xlim[0]+0.35*(xlim[1]-xlim[0]),ylim[0]+0.32*(ylim[1]-ylim[0])),
                                       ha='center',
                                       va='center',
                                       color=[0.5]*3,
@@ -496,10 +564,13 @@ if __name__ == "__main__":
                                       bbox=bbox_args,
                                       arrowprops = dict(arrowstyle="<|-",color=[0.5]*3,connectionstyle='angle3,angleA=5,angleB=75'),
                                       zorder=0)
+    
+    xlim = g['ax_{}_{}'.format(z,2)].get_xlim()
+    ylim = g['ax_{}_{}'.format(z,2)].get_ylim()
     g['an_{}_{}_{}'.format(z,2,100)] = g['ax_{}_{}'.format(z,2)].annotate(r'$P^\mathrm{dis}_\mathrm{cell} \uparrow$',
-                                      (80,80),
+                                      (xlim[0]+0.94*(xlim[1]-xlim[0]),ylim[0]+0.41*(ylim[1]-ylim[0])),
                                       # textcoords="offset points",
-                                      xytext=(76.5,160),
+                                      xytext=(xlim[0]+0.9*(xlim[1]-xlim[0]),ylim[0]+0.78*(ylim[1]-ylim[0])),
                                       ha='center',
                                       va='center',
                                       color=[0.5]*3,
@@ -511,7 +582,9 @@ if __name__ == "__main__":
     grid.tight_layout(g['fig_{}'.format(z)])
     # g['fig_{}'.format(z)].canvas.draw()
 
-    SDM_fcn.replot_EP_limits(g,res,tmp_ind,Umax=5.0,Umin=1.0,Cratemax=10,Tmax=400,zfig=1,nPref=nPref,calc_EPsys=calc_EPsys,print_ann=True,prefix_str=prefix_str)
+
+    SDM_fcn.replot_EP_limits(g,res,tmp_ind,pub_lim=pub_lim,zfig=1,nPref=nPref,calc_EPsys=calc_EPsys,print_ann=False,prefix_str=prefix_str)
+
 
 
     #%%
@@ -538,8 +611,6 @@ if __name__ == "__main__":
     g['ax_{}_{}'.format(z,0)].set_aspect(1./g['ax_{}_{}'.format(z,0)].get_data_ratio())
     SDM_fcn._plot_isochrones(g['ax_{}_{}'.format(z,0)],num_subplot=True)
    
-    # SDM_fcn.recalc_design(res, Umax=3.5, Umin=2.0, Cratemax=5, Tmax=400, m=c['req']['E/P_req'], show_annotation=False)
-
 
 
     # Plot: Intersection Curves of Operational Quantities (by Limit Variation) 
@@ -856,17 +927,17 @@ if __name__ == "__main__":
     
             g['pl_{}_{}_{}'.format(zfig,1,100)][0].set_data(EPline_x,dp_intersection[prefix_str+'U_cell'])
             id_max = max([n for n,i in enumerate(dp_intersection[prefix_str+'U_cell']) if ~np.isnan(i)])
-            g['pl_{}_{}_{}'.format(zfig,1,101)][0].set_data(EPline_x[id_max],dp_intersection[prefix_str+'U_cell'][id_max])
+            g['pl_{}_{}_{}'.format(zfig,1,101)][0].set_data([EPline_x[id_max]],[dp_intersection[prefix_str+'U_cell'][id_max]])
             _,sUminset = SDM_fcn._set_intersection_limits(g,EPline_x,dp_intersection[prefix_str+'U_cell'],zfig,1,x=sPmaxset,replot=True)
                             
             g['pl_{}_{}_{}'.format(zfig,2,100)][0].set_data(EPline_x,dp_intersection[prefix_str+'I_cell'])
             id_max = max([n for n,i in enumerate(dp_intersection[prefix_str+'I_cell']) if ~np.isnan(i)])
-            g['pl_{}_{}_{}'.format(zfig,2,101)][0].set_data(EPline_x[id_max],dp_intersection[prefix_str+'I_cell'][id_max])
+            g['pl_{}_{}_{}'.format(zfig,2,101)][0].set_data([EPline_x[id_max]],[dp_intersection[prefix_str+'I_cell'][id_max]])
             _,sImaxset = SDM_fcn._set_intersection_limits(g,EPline_x,dp_intersection[prefix_str+'I_cell'],zfig,2,x=sPmaxset,replot=True)
          
             g['fig_{}'.format(zfig)].canvas.draw()
         except:
-            0
+             pass
         
         # reset sPset when changing sEPset
         sPset.eventson = False
@@ -884,7 +955,7 @@ if __name__ == "__main__":
             c['cell']['Pdc_DIS_max'] = sPmaxset
             update_dss(0)
         except:
-            0
+            pass
         
         print('[Info] tReplot = {:.3f}s'.format(time.time()-tic))
 
