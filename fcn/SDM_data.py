@@ -305,12 +305,12 @@ def adjust_res_keys(res,prefix_str='cell_model[1,1].'):
 
         res[n][prefix_str+'U_cell'] = res[n].pop('U_V')
         res[n][prefix_str+'I_cell'] = res[n].pop('I_A')
-        res[n][prefix_str+'Crate'] = res[n][prefix_str+'I_cell']/res[n]['_settings']['ParameterValues']['Q_n'][0]
+        res[n][prefix_str+'Crate_cell'] = res[n][prefix_str+'I_cell']/res[n]['_settings']['ParameterValues']['Q_n'][0]
 
         res[n][prefix_str+'T_cell'] = res[n].pop('T_2_C')
         # key_Qref = [key for key in res[n]['_settings']['ParameterValues'] if 'Q_SCT' in key][-1]
         key_Qref = 'Q_n'
-        res[n][prefix_str+'SoC'] = 1 + res[n]['Qneg_As']/3600/res[n]['_settings']['ParameterValues'][key_Qref][0]
+        res[n][prefix_str+'SoC_cell'] = 1 + res[n]['Qneg_As']/3600/res[n]['_settings']['ParameterValues'][key_Qref][0]
 
         # Limits   
         res[n]['U_max'] = res[n]['_settings']['ParameterValues']['U_max']
@@ -334,7 +334,7 @@ def adjust_res_keys(res,prefix_str='cell_model[1,1].'):
                     prefix_str+'P_cell',
                     prefix_str+'I_cell',
                     'I_dis_max',
-                    prefix_str+'Crate',
+                    prefix_str+'Crate_cell',
                     'Crate_max',
                     ]:            
             res[n][key] = np.abs(res[n][key])
