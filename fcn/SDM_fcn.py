@@ -205,12 +205,12 @@ def compile_EP(tmp_res, calc_EPsys=False, prefix_str='cell_model[1,1].'):
                 # print(res[rn][prefix_str+'U_cell'][-1])
                 cond1 = tmp_res[rn][prefix_str+'U_cell']-tmp_res[rn]['U_max'][0]>0
                 cond2 = tmp_res[rn][prefix_str+'U_cell']-tmp_res[rn]['U_min'][0]<0
-                cond3 = tmp_res[rn][prefix_str+'Crate']-tmp_res[rn]['Crate_max'][0]>0
-                # cond4 = tmp_res[rn][prefix_str+'Crate']-tmp_res[rn]['Crate_min'][0]>0
+                cond3 = tmp_res[rn][prefix_str+'Crate_cell']-tmp_res[rn]['Crate_max'][0]>0
+                # cond4 = tmp_res[rn][prefix_str+'Crate_cell']-tmp_res[rn]['Crate_min'][0]>0
                 cond5 = tmp_res[rn][prefix_str+'T_cell']-tmp_res[rn]['T_max'][0]>0
                 # cond6 = tmp_res[rn][prefix_str+'T_cell']-tmp_res[rn]['T_min'][0]<0
-                # cond7 = tmp_res[rn][prefix_str+'SoC']-tmp_res[rn]['SoC_max'][0]>0   #### <= DIE HIER!
-                # cond8 = tmp_res[rn][prefix_str+'SoC']-tmp_res[rn]['SoC_min'][0]<0
+                # cond7 = tmp_res[rn][prefix_str+'SoC_cell']-tmp_res[rn]['SoC_max'][0]>0   #### <= DIE HIER!
+                # cond8 = tmp_res[rn][prefix_str+'SoC_cell']-tmp_res[rn]['SoC_min'][0]<0
                 
                 
                 if not e0 or not any(ele == 0 for ele in e0):
@@ -304,7 +304,7 @@ def compile_EP(tmp_res, calc_EPsys=False, prefix_str='cell_model[1,1].'):
                 except:
                     p.append(np.nan)
                 try:
-                    soc.append(tmp_res[rn][prefix_str+'SoC'][0])
+                    soc.append(tmp_res[rn][prefix_str+'SoC_cell'][0])
                 except:
                     soc.append(np.nan)
             d[nSoC] = [e0,e1,e2,e3,e5] # '.': U(t=0)<Umax, 'o': U(t=0)<Umax & U(t=end)>Umin, 'v': U(t=0)<Umax & Crate(t=end)<Cratemax [beendet durch Cratemax], 's': U(t=0)<Umax & T(t=end)<Tmax [beendet durch Tmax]
@@ -368,9 +368,9 @@ def recalc_limits(res, Umax, Umin, Cratemax, Tmax, SoCmin=-0.5, SoCmax=1.5,
 
             # ind_s ("-1" overlapping due to symbols)
             cond_s = {1:    loc_res[rn][prefix_str+'U_cell']-loc_res[rn]['U_max'][0]>0,
-                      # 4:    loc_res[rn][prefix_str+'Crate']-loc_res[rn]['Crate_min'][0]>0,
+                      # 4:    loc_res[rn][prefix_str+'Crate_cell']-loc_res[rn]['Crate_min'][0]>0,
                       # 6:    loc_res[rn][prefix_str+'T_cell']-loc_res[rn]['T_min'][0]<0,
-                      7:    loc_res[rn][prefix_str+'SoC']-loc_res[rn]['SoC_max'][0]>0}
+                      7:    loc_res[rn][prefix_str+'SoC_cell']-loc_res[rn]['SoC_max'][0]>0}
             
             
             def find_max_cond_s(cond):
@@ -394,9 +394,9 @@ def recalc_limits(res, Umax, Umin, Cratemax, Tmax, SoCmin=-0.5, SoCmax=1.5,
                         
             # ind_e ("+1" overlapping due to symbols)            
             cond_e = {2:    loc_res[rn][prefix_str+'U_cell']-loc_res[rn]['U_min'][0]<0,
-                      3:    loc_res[rn][prefix_str+'Crate']-loc_res[rn]['Crate_max'][0]>0,
+                      3:    loc_res[rn][prefix_str+'Crate_cell']-loc_res[rn]['Crate_max'][0]>0,
                       5:    loc_res[rn][prefix_str+'T_cell']-loc_res[rn]['T_max'][0]>0,
-                      8:    loc_res[rn][prefix_str+'SoC']-loc_res[rn]['SoC_min'][0]<0}
+                      8:    loc_res[rn][prefix_str+'SoC_cell']-loc_res[rn]['SoC_min'][0]<0}
         
             def find_min_cond_e(cond):
                 for ii in range(len(cond)):
