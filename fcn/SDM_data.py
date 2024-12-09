@@ -301,19 +301,26 @@ def adjust_res_keys(res,prefix_str='cell_model[1,1].',mode='dis'):
         # Data Arrays
         res[n][prefix_str+'E_cell'] = res[n]['E_J']/3600
         # res[n][prefix_str+'P_cell'] = res[n].pop('P_W')
-        
         # res[n][prefix_str+'P_cell'] = [np.average(res[n]['P_W'])]*len(res[n]['P_W'])
 
+        ### CAUTION: Sign Error in Publication P1 due to I_cut > 0. Cell Limits
+        ###          specified by Plot Annotations differ slightly. Graphical
+        ###          Synthesis does not reveal a backward Intersection between
+        ###          upper and lower Limits when decreasing Pcell. However,
+        ###          apart from this, all Key Statements remain the same.
+        ###          Plots can be reproduced using: 'tmp_Pmin = -tmp_Pmin'
         tmp_Pmin = abs(res[n]['_settings']['ParameterValues']['U_max'][0]*res[n]['_settings']['ParameterValues']['I_cut'][0])
         tmp_Pmax = abs(res[n]['_settings']['ParameterValues']['U_max'][0]*res[n]['_settings']['ParameterValues']['I_dis_max'][0])
+        # tmp_Pmin = -tmp_Pmin
         
         ref_n_max = 10 if len(res) <=10 else 25 if len(res)-1 <=25 else 50 # CAUTION HERE!
-        
         res[n][prefix_str+'P_cell'] = [tmp_Pmin+n/ref_n_max*(tmp_Pmax-tmp_Pmin)]*len(res[n]['P_W'])
 
         res[n][prefix_str+'U_cell'] = res[n].pop('U_V')
         res[n][prefix_str+'I_cell'] = res[n].pop('I_A')
         res[n][prefix_str+'Crate_cell'] = res[n][prefix_str+'I_cell']/res[n]['_settings']['ParameterValues']['Q_n'][0]
+        res[n][prefix_str+'Crate'] = res[n][prefix_str+'I_cell']/res[n]['_settings']['ParameterValues']['Q_n'][0]
+
 
         res[n][prefix_str+'T_cell'] = res[n].pop('T_2_C')
 
