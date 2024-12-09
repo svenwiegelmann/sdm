@@ -2029,6 +2029,7 @@ def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].',
                                                     size=0.8*plot_preferences.plt.rcParams['font.size'],#'smaller',
                                                     ha='center',
                                                     va='center',
+                                                    bbox=bbox_args,
                                                     zorder=100)
     n0 += nTmax
 
