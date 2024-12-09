@@ -265,7 +265,7 @@ def load_results(no,print_bat_list=False):
 
 
 #%%
-def adjust_res_keys(res,prefix_str='cell_model[1,1].'):
+def adjust_res_keys(res,prefix_str='cell_model[1,1].',mode='dis'):
     """
     Adjusts keys and processes data within the results list from energy storage 
     system experiments. This includes renaming keys, calculating additional 
@@ -275,6 +275,8 @@ def adjust_res_keys(res,prefix_str='cell_model[1,1].'):
     - res (list): A list of dictionaries, each containing data from a single experiment.
     - prefix_str (str, optional): Prefix for keys in the result dictionaries to 
       indicate specific sub-model data. Defaults to 'cell_model[1,1].'.
+    - mode (str, optional): Specifies the processing mode. Either 'dis' 
+      (discharge) or 'chg' (charge). Defaults to 'dis'.
 
     Returns:
     - list: The same list of dictionaries with adjusted keys and additional 
@@ -284,7 +286,12 @@ def adjust_res_keys(res,prefix_str='cell_model[1,1].'):
     - Assumes a specific structure for the input data. Adaptations may be necessary 
       for different data formats or experimental setups.
     - Intended for use within a broader toolkit for energy storage system analysis.
+    - Mode 'chg' or 'dis' determines the sign convention for currents, 
+      power, and Crate. Raises a `ValueError` if `mode` is not 'dis' or 'chg'.
     """
+    
+    if mode not in ['dis','chg']:
+        raise ValueError('[Error] Argument of mode not in ["dis","chg"].')
     
     for n,_ in enumerate(res):
         res[n]['_nP'] = res[n].pop('ind_C_')
@@ -296,6 +303,7 @@ def adjust_res_keys(res,prefix_str='cell_model[1,1].'):
         # res[n][prefix_str+'P_cell'] = res[n].pop('P_W')
         
         # res[n][prefix_str+'P_cell'] = [np.average(res[n]['P_W'])]*len(res[n]['P_W'])
+
         tmp_Pmin = abs(res[n]['_settings']['ParameterValues']['U_max'][0]*res[n]['_settings']['ParameterValues']['I_cut'][0])
         tmp_Pmax = abs(res[n]['_settings']['ParameterValues']['U_max'][0]*res[n]['_settings']['ParameterValues']['I_dis_max'][0])
         
@@ -308,9 +316,13 @@ def adjust_res_keys(res,prefix_str='cell_model[1,1].'):
         res[n][prefix_str+'Crate_cell'] = res[n][prefix_str+'I_cell']/res[n]['_settings']['ParameterValues']['Q_n'][0]
 
         res[n][prefix_str+'T_cell'] = res[n].pop('T_2_C')
+
         # key_Qref = [key for key in res[n]['_settings']['ParameterValues'] if 'Q_SCT' in key][-1]
         key_Qref = 'Q_n'
-        res[n][prefix_str+'SoC_cell'] = 1 + res[n]['Qneg_As']/3600/res[n]['_settings']['ParameterValues'][key_Qref][0]
+        if mode == 'chg':
+            res[n][prefix_str+'SoC_cell'] = res[n]['Qpos_As']/3600/res[n]['_settings']['ParameterValues'][key_Qref][0]
+        else:
+            res[n][prefix_str+'SoC_cell'] = 1 + res[n]['Qneg_As']/3600/res[n]['_settings']['ParameterValues'][key_Qref][0]
 
         # Limits   
         res[n]['U_max'] = res[n]['_settings']['ParameterValues']['U_max']
@@ -336,8 +348,12 @@ def adjust_res_keys(res,prefix_str='cell_model[1,1].'):
                     'I_dis_max',
                     prefix_str+'Crate_cell',
                     'Crate_max',
-                    ]:            
-            res[n][key] = np.abs(res[n][key])
+                    ]:
+            if mode == 'chg':
+                res[n][key] = -np.abs(res[n][key])
+            else:
+                res[n][key] = np.abs(res[n][key])
+
 
         # plot_limits
         lim_scale = 1.1

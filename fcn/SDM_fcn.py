@@ -433,6 +433,148 @@ def recalc_limits(res, Umax, Umin, Cratemax, Tmax, SoCmin=-0.5, SoCmax=1.5,
             0
     return loc_res
 
+def recalc_limits(res, Umax, Umin, Cratemax, Tmax, SoCmin=-0.5, SoCmax=1.5,
+                  calc_EPsys=False, prefix_str='cell_model[1,1].',mode='dis'):
+    """
+    Adjusts the limits of various parameters in simulation results and 
+    recalculates data arrays based on these new limits. Handles both 
+    system-level and cell-level data.
+
+    Parameters:
+    - res (list): List of dictionaries, each a set of simulation results.
+    - Umax (float): Maximum voltage limit.
+    - Umin (float): Minimum voltage limit.
+    - Cratemax (float): Maximum Crate limit.
+    - Tmax (float): Maximum temperature limit.
+    - SoCmin (float, optional): Minimum state of charge limit. Defaults
+      to -0.1.
+    - SoCmax (float, optional): Maximum state of charge limit. Defaults
+      to 1.1.
+    - calc_EPsys (bool, optional): If True, recalculates system-level 
+      data. False for cell-level data.
+    - prefix_str (str, optional): Substring for specific sub-model in 
+      result keys. Defaults to 'cell_model[1,1].'.
+    - mode (str, optional): Determines discharge ('dis') or charge ('chg') mode 
+      for processing. Defaults to `'dis'`.
+  
+    Returns:
+    - list: Updated simulation results with new limits.
+
+    Note:
+    - Deep copies `res` to avoid mutating original data.
+    - Uses NumPy for numerical operations and handling NaN values.
+    - Applies limits to voltage, Crate, temperature, and SoC values.
+    - Handles both integral quantities (e.g., energy) and time-series data by 
+      truncating and recalculating as required.
+    - Calculates indices to segment data (`ind_s` and `ind_e`) based on the 
+      specified limits and conditions.
+    - Raises a `ValueError` if `mode` is not 'dis' or 'chg'.
+    """
+    
+    if mode not in ['dis','chg']:
+        raise ValueError('[Error] Argument of mode not in ["dis","chg"].')
+
+    loc_res = copy.deepcopy(res)
+    for rn,_ in enumerate(loc_res):
+        try:
+            if calc_EPsys:
+                tmp_E = abs(loc_res[rn]['E_sys'][-1])
+                tmp_P = abs(loc_res[rn]['P_sys'][0])
+            else:
+                tmp_E = abs(loc_res[rn][prefix_str+'E_cell'][-1])
+                tmp_P = abs(loc_res[rn][prefix_str+'P_cell'][0])
+            
+            loc_res[rn]['U_min'] = np.array([Umin]*2)
+            loc_res[rn]['U_max'] = np.array([Umax]*2)
+            loc_res[rn]['Crate_max'] = np.array([Cratemax]*2)
+            loc_res[rn]['T_max'] = np.array([Tmax]*2)
+            loc_res[rn]['SoC_min'] = np.array([SoCmin]*2)
+            loc_res[rn]['SoC_max'] = np.array([SoCmax]*2)
+
+            # ind_s ("-1" overlapping due to symbols)
+            if mode == 'chg':
+                cond_s = {2:    loc_res[rn][prefix_str+'U_cell']-loc_res[rn]['U_min'][0]<0,
+                          3:    loc_res[rn][prefix_str+'Crate_cell']-loc_res[rn]['Crate_max'][0]>0,
+                          5:    loc_res[rn][prefix_str+'T_cell']-loc_res[rn]['T_max'][0]>0,
+                          8:    loc_res[rn][prefix_str+'SoC_cell']-loc_res[rn]['SoC_min'][0]<0}
+            else:
+                cond_s = {1:    loc_res[rn][prefix_str+'U_cell']-loc_res[rn]['U_max'][0]>0,
+                          # 4:    loc_res[rn][prefix_str+'Crate_cell']-loc_res[rn]['Crate_min'][0]>0,
+                          # 6:    loc_res[rn][prefix_str+'T_cell']-loc_res[rn]['T_min'][0]<0,
+                          7:    loc_res[rn][prefix_str+'SoC_cell']-loc_res[rn]['SoC_max'][0]>0}
+            
+            
+            def find_max_cond_s(cond):
+                for ii in range(len(cond)):
+                    ele = list(combinations(cond.keys(),len(cond)-ii))
+                    for n_ele,i in enumerate(ele):
+                        if all([cond[n].any() for n in i]):
+                            # print(i,max([np.where(cond[n])[0].max()-1 if np.where(cond[n])[0].max() > 0 else 0 for n in i]))
+                            return max([np.where(cond[n])[0].max()-1 if np.where(cond[n])[0].max() > 0 else 0 for n in i])
+                        else:
+                            continue
+            
+            val_s = find_max_cond_s(cond_s)
+            if val_s:
+                ind_s = val_s
+                # print(True, ind_s)
+            else:
+                ind_s = 0
+                # print(False, ind_s)
+            
+                        
+            # ind_e ("+1" overlapping due to symbols)            
+            if mode == 'chg':
+                cond_e = {1:    loc_res[rn][prefix_str+'U_cell']-loc_res[rn]['U_max'][0]>0,
+                          # 4:    loc_res[rn][prefix_str+'Crate_cell']-loc_res[rn]['Crate_min'][0]>0,
+                          # 6:    loc_res[rn][prefix_str+'T_cell']-loc_res[rn]['T_min'][0]<0,
+                          7:    loc_res[rn][prefix_str+'SoC_cell']-loc_res[rn]['SoC_max'][0]>0}
+            else:
+                cond_e = {2:    loc_res[rn][prefix_str+'U_cell']-loc_res[rn]['U_min'][0]<0,
+                          3:    loc_res[rn][prefix_str+'Crate_cell']-loc_res[rn]['Crate_max'][0]>0,
+                          5:    loc_res[rn][prefix_str+'T_cell']-loc_res[rn]['T_max'][0]>0,
+                          8:    loc_res[rn][prefix_str+'SoC_cell']-loc_res[rn]['SoC_min'][0]<0}
+        
+            def find_min_cond_e(cond):
+                for ii in range(len(cond)):
+                    ele = list(combinations(cond.keys(),len(cond)-ii))
+                    for n_ele,i in enumerate(ele):
+                        if all([cond[n].any() for n in i]):
+                            # print(i,min([np.where(cond[n])[0].min() for n in i])+1)
+                            return min([np.where(cond[n])[0].min() for n in i])+1
+                        else:
+                            continue
+            
+            val_e = find_min_cond_e(cond_e)
+            if val_e:
+                ind_e = val_e
+                # print(True, ind_e)
+            else:
+                ind_e = len(loc_res[rn]['time'])
+                # print(False, ind_e)
+
+            
+            for key in loc_res[rn]:
+                if isinstance(loc_res[rn][key],np.ndarray) and key not in loc_res[rn]['_settings']['ParameterValues']:
+                    if key == prefix_str+'E_cell' or key == 'E_cell[1,1]' or key == 'E_sys': # integral quantity
+                        # print(key)
+                        loc_res[rn][key] = loc_res[rn][key][ind_s:ind_e] - loc_res[rn][key][ind_s]
+                    else:
+                        loc_res[rn][key] = loc_res[rn][key][ind_s:ind_e]
+                        
+            loc_res[rn]['_settings']['recalc-limits:cond_s'] = cond_s
+            loc_res[rn]['_settings']['recalc-limits:cond_e'] = cond_e
+            loc_res[rn]['_settings']['recalc-limits:ind_s'] = ind_s
+            loc_res[rn]['_settings']['recalc-limits:ind_e'] = ind_e
+        except:
+            0
+    return loc_res
+
+
+
+
+
+
 
 #%%
 def calc_design(x_data, y_data, m, b=0, show_plt=True, show_annotation=True, 
@@ -2254,61 +2396,37 @@ def plot_iso_intersection_curves(g, zfig, zax, c, res,
 
     # Operation
     for nEP,set_EP in enumerate(iso_mins):
-        dp_intersection = calc_intersection_curve(g,res,set_EP,prefix_str=prefix_str,print_error=False)
-        EPline_x = dp_intersection['valx_P']
-        EPline_y = dp_intersection[prefix_str+'P_cell']
-        id_min = min([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
-        id_max = max([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
-        
-        if var=='Umin':
-            g['pl_{}_{}_{}'.format(zfig,zax,nEP+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(dp_intersection[prefix_str+'P_cell'],dp_intersection[prefix_str+'U_cell'],color=farbe[5],alpha=alph,lw=0.75,zorder=0)
-        
-            if print_ann:
-                g['iso_{}_{}_{}'.format(zfig,zax,nEP)] = g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}'.format(_text_EP_units(set_EP*60)),
-                                                    (dp_intersection[prefix_str+'P_cell'][id_max],dp_intersection[prefix_str+'U_cell'][id_max]),
-                                                    textcoords="offset points",
-                                                    xytext=(0,-5),
-                                                    c=farbe[5],
-                                                    size='smaller',
-                                                    ha='center',
-                                                    va='top',
-                                                    alpha=alph,
-                                                    bbox=bbox_args,
-                                                    zorder=0)
+        try:
+            dp_intersection = calc_intersection_curve(g,res,set_EP,prefix_str=prefix_str,print_error=False)
+            EPline_x = dp_intersection['valx_P']
+            EPline_y = dp_intersection[prefix_str+'P_cell'] # wenn es intersections gibt, dann enthält dp_intersection > 2 elements!
+            id_min = min([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
+            id_max = max([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
             
-        elif var=='Imax':
-            g['pl_{}_{}_{}'.format(zfig,zax,nEP+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(dp_intersection[prefix_str+'P_cell'],dp_intersection[prefix_str+'I_cell'],color=farbe[3],alpha=alph,lw=0.75,zorder=0)
-
-            if print_ann:
-                g['iso_{}_{}_{}'.format(zfig,zax,nEP)] = g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}'.format(_text_EP_units(set_EP*60)),
-                                                    (dp_intersection[prefix_str+'P_cell'][id_max],dp_intersection[prefix_str+'I_cell'][id_max]),
-                                                    textcoords="offset points",
-                                                    xytext=(0,5),
-                                                    c=farbe[3],
-                                                    size='smaller',
-                                                    ha='center',
-                                                    va='top',
-                                                    alpha=alph,
-                                                    bbox=bbox_args,
-                                                    zorder=0)
+            if var=='Umin':
+                g['pl_{}_{}_{}'.format(zfig,zax,nEP+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(dp_intersection[prefix_str+'P_cell'],dp_intersection[prefix_str+'U_cell'],color=farbe[5],alpha=alph,lw=0.75,zorder=0)
             
-        elif var=='general':
-            # Evolution of Limits Intersection Points (Loci)
-            xmin = c['pec']['Udc_min']/dp_intersection[prefix_str+'U_cell']
-            xmax = c['pec']['Udc_max']/dp_intersection['U_max']
-            ymin = c['pec']['n']*c['pec']['Idc_max']/dp_intersection[prefix_str+'I_cell']
-            f_hypP = hyperbel((c['req']['Pac_req']/c['pec']['eta_op'])/dp_intersection[prefix_str+'P_cell'])
-            
-            if 'pl_{}_{}_{}'.format(zfig,zax,nEP+200) not in g:                
-                g['pl_{}_{}_{}'.format(zfig,zax,nEP+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(xmin,f_hypP(xmin),color=farbe[5],alpha=alph,lw=0.75,zorder=0)
-                g['pl_{}_{}_{}'.format(zfig,zax,nEP+len(iso_mins)+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(f_hypP(ymin),ymin,color=farbe[3],alpha=alph,lw=0.75,zorder=0)
-                g['pl_{}_{}_{}'.format(zfig,zax,nEP+2*len(iso_mins)+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(xmax,f_hypP(xmax),color=farbe[4],alpha=alph,lw=0.75,zorder=0)
-                
                 if print_ann:
                     g['iso_{}_{}_{}'.format(zfig,zax,nEP)] = g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}'.format(_text_EP_units(set_EP*60)),
-                                                        (f_hypP(ymin)[~np.isnan(ymin)][-1],ymin[~np.isnan(ymin)][-1]),
+                                                        (dp_intersection[prefix_str+'P_cell'][id_max],dp_intersection[prefix_str+'U_cell'][id_max]),
                                                         textcoords="offset points",
-                                                        xytext=(10,-2.5),
+                                                        xytext=(0,-5),
+                                                        c=farbe[5],
+                                                        size='smaller',
+                                                        ha='center',
+                                                        va='top',
+                                                        alpha=alph,
+                                                        bbox=bbox_args,
+                                                        zorder=0)
+                
+            elif var=='Imax':
+                g['pl_{}_{}_{}'.format(zfig,zax,nEP+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(dp_intersection[prefix_str+'P_cell'],dp_intersection[prefix_str+'I_cell'],color=farbe[3],alpha=alph,lw=0.75,zorder=0)
+    
+                if print_ann:
+                    g['iso_{}_{}_{}'.format(zfig,zax,nEP)] = g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}'.format(_text_EP_units(set_EP*60)),
+                                                        (dp_intersection[prefix_str+'P_cell'][id_max],dp_intersection[prefix_str+'I_cell'][id_max]),
+                                                        textcoords="offset points",
+                                                        xytext=(0,5),
                                                         c=farbe[3],
                                                         size='smaller',
                                                         ha='center',
@@ -2316,13 +2434,42 @@ def plot_iso_intersection_curves(g, zfig, zax, c, res,
                                                         alpha=alph,
                                                         bbox=bbox_args,
                                                         zorder=0)
-            else:
-                g['pl_{}_{}_{}'.format(zfig,zax,nEP+200)][0].set_data(xmin,f_hypP(xmin))
-                g['pl_{}_{}_{}'.format(zfig,zax,nEP+len(iso_mins)+200)][0].set_data(f_hypP(ymin),ymin)
-                g['pl_{}_{}_{}'.format(zfig,zax,nEP+2*len(iso_mins)+200)][0].set_data(xmax,f_hypP(xmax))
                 
-                if print_ann:
-                    g['iso_{}_{}_{}'.format(zfig,zax,nEP)].xy = (f_hypP(ymin)[~np.isnan(ymin)][-1],ymin[~np.isnan(ymin)][-1])
+            elif var=='general':
+                # Evolution of Limits Intersection Points (Loci)
+                xmin = c['pec']['Udc_min']/dp_intersection[prefix_str+'U_cell']
+                xmax = c['pec']['Udc_max']/dp_intersection['U_max']
+                ymin = c['pec']['n']*c['pec']['Idc_max']/dp_intersection[prefix_str+'I_cell']
+                f_hypP = hyperbel((c['req']['Pac_req']/c['pec']['eta_op'])/dp_intersection[prefix_str+'P_cell'])
+                
+                if 'pl_{}_{}_{}'.format(zfig,zax,nEP+200) not in g:                
+                    g['pl_{}_{}_{}'.format(zfig,zax,nEP+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(xmin,f_hypP(xmin),color=farbe[5],alpha=alph,lw=0.75,zorder=0)
+                    g['pl_{}_{}_{}'.format(zfig,zax,nEP+len(iso_mins)+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(f_hypP(ymin),ymin,color=farbe[3],alpha=alph,lw=0.75,zorder=0)
+                    g['pl_{}_{}_{}'.format(zfig,zax,nEP+2*len(iso_mins)+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(xmax,f_hypP(xmax),color=farbe[4],alpha=alph,lw=0.75,zorder=0)
+                    
+                    if print_ann:
+                        g['iso_{}_{}_{}'.format(zfig,zax,nEP)] = g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}'.format(_text_EP_units(set_EP*60)),
+                                                            (f_hypP(ymin)[~np.isnan(ymin)][-1],ymin[~np.isnan(ymin)][-1]),
+                                                            textcoords="offset points",
+                                                            xytext=(10,-2.5),
+                                                            c=farbe[3],
+                                                            size='smaller',
+                                                            ha='center',
+                                                            va='top',
+                                                            alpha=alph,
+                                                            bbox=bbox_args,
+                                                            zorder=0)
+                else:
+                    g['pl_{}_{}_{}'.format(zfig,zax,nEP+200)][0].set_data(xmin,f_hypP(xmin))
+                    g['pl_{}_{}_{}'.format(zfig,zax,nEP+len(iso_mins)+200)][0].set_data(f_hypP(ymin),ymin)
+                    g['pl_{}_{}_{}'.format(zfig,zax,nEP+2*len(iso_mins)+200)][0].set_data(xmax,f_hypP(xmax))
+                    
+                    if print_ann:
+                        g['iso_{}_{}_{}'.format(zfig,zax,nEP)].xy = (f_hypP(ymin)[~np.isnan(ymin)][-1],ymin[~np.isnan(ymin)][-1])
+        
+        except: # warning
+            print('[Warning] No intersection curve for E/P = {} was calculated.'.format(_text_EP_units(set_EP*60)))
+            pass
 
 
 #%%
