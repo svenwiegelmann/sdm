@@ -100,7 +100,6 @@ if __name__ == "__main__":
     # Input: Cell-based (Measurement) Data of Energy Storage System
     load_res = SDM_data.load_results(0,True)
     
-    
     if isinstance(load_res,list):
         load_res_keys = []
         load_res = SDM_data.adjust_res_keys(load_res,prefix_str=prefix_str)
@@ -146,7 +145,7 @@ if __name__ == "__main__":
     
         ## Initial Settings for Plot Generation
         if (no==-1):
-            c['req'] = SDM_data.set_app(0)    
+            c['req'] = SDM_data.set_app(0)
             c['pec'] = SDM_data.set_pec(0)
             c['cell'] = ({'Udc_max':        res[rn_min]['U_max'][0],
                           'Udc_min':        res[rn_min]['U_min'][0],
@@ -158,13 +157,22 @@ if __name__ == "__main__":
         ## Case Studies
         if (no==0): # DSS Explanation
             c['req'] = SDM_data.set_app(0)
-            # c['pec'] = set_pec(0)
+            c['pec'] = SDM_data.set_pec(0)
             c['pec']['n'] = 2
+            c['pec']['Udc_min'] = 270
+            c['pec']['Udc_max'] = 500
+            c['pec']['Idc_max'] = 1675
+            c['pec']['Pdc_max'] = 550000
             
             c['mod']['xS'] = 4
             c['mod']['yP'] = 2
             
-            update_dp(c['req']['E/P_req'],270,500,1800,550000,100)
+            update_dp(c['req']['E/P_req'],
+                      c['pec']['Udc_min'],
+                      c['pec']['Udc_max'],
+                      c['pec']['Idc_max'],
+                      c['pec']['Pdc_max'],
+                      100)
             
             # Hide Ticklabels
             plot_preferences.hide_ticklabels(g['ax_{}_{}'.format(3,0)].xaxis)
@@ -324,7 +332,7 @@ if __name__ == "__main__":
     for key in pub_lim:
         pub_lim[key]['cut'] = pub_lim[key]['val']
 
-    ## Calculate specific Operating Limits
+    # ## Calculate specific Operating Limits
     # pub_lim['Umin']['cut'] = 1.95
     # pub_lim['Cratemax']['cut'] = 4.25
 
@@ -382,26 +390,26 @@ if __name__ == "__main__":
         if key in ['Cratemin','Tmin']:
             continue
         res_recalc = SDM_fcn.recalc_limits(res,
-                                           Umax=pub_lim['Umax']['cut'] if key=='Umax' else pub_lim['Umax']['val'],
-                                           Umin=pub_lim['Umin']['cut'] if key=='Umin' else pub_lim['Umin']['val'],
-                                           Cratemax=pub_lim['Cratemax']['cut'] if key=='Cratemax' else pub_lim['Cratemax']['val'],
-                                           Tmax=pub_lim['Tmax']['cut'] if key=='Tmax' else pub_lim['Tmax']['val'],
-                                           SoCmax=pub_lim['SoCmax']['cut'] if key=='SoCmax' else pub_lim['SoCmax']['val'],
-                                           SoCmin=pub_lim['SoCmin']['cut'] if key=='SoCmin' else pub_lim['SoCmin']['val'],
-                                           prefix_str=prefix_str)
+                                            Umax=pub_lim['Umax']['cut'] if key=='Umax' else pub_lim['Umax']['val'],
+                                            Umin=pub_lim['Umin']['cut'] if key=='Umin' else pub_lim['Umin']['val'],
+                                            Cratemax=pub_lim['Cratemax']['cut'] if key=='Cratemax' else pub_lim['Cratemax']['val'],
+                                            Tmax=pub_lim['Tmax']['cut'] if key=='Tmax' else pub_lim['Tmax']['val'],
+                                            SoCmax=pub_lim['SoCmax']['cut'] if key=='SoCmax' else pub_lim['SoCmax']['val'],
+                                            SoCmin=pub_lim['SoCmin']['cut'] if key=='SoCmin' else pub_lim['SoCmin']['val'],
+                                            prefix_str=prefix_str)
         d_recalc, tmp_ind_recalc, rn_min_recalc = SDM_fcn.compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
         g['pl_{}_{}_{}_{}'.format(z,0,20+pub_lim[key]['n'],nSoC)] = g['ax_{}_{}'.format(z,0)].plot(d_recalc['p'],d_recalc[nSoC][0],color=pub_lim[key]['c'],marker='.',markersize=4,lw=1)
     
 
     # overall   
     res_recalc = SDM_fcn.recalc_limits(res,
-                                       Umax=pub_lim['Umax']['cut'],
-                                       Umin=pub_lim['Umin']['cut'],
-                                       Cratemax=pub_lim['Cratemax']['cut'] ,
-                                       Tmax=pub_lim['Tmax']['cut'],
-                                       SoCmax=pub_lim['SoCmax']['cut'],
-                                       SoCmin=pub_lim['SoCmin']['cut'],
-                                       prefix_str=prefix_str)
+                                        Umax=pub_lim['Umax']['cut'],
+                                        Umin=pub_lim['Umin']['cut'],
+                                        Cratemax=pub_lim['Cratemax']['cut'] ,
+                                        Tmax=pub_lim['Tmax']['cut'],
+                                        SoCmax=pub_lim['SoCmax']['cut'],
+                                        SoCmin=pub_lim['SoCmin']['cut'],
+                                        prefix_str=prefix_str)
     d_recalc, tmp_ind_recalc, rn_min_recalc = SDM_fcn.compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
     g['pl_{}_{}_{}_{}'.format(z,0,99,nSoC)] = g['ax_{}_{}'.format(z,0)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[0],marker='.',markersize=6,lw=1.5)
 
@@ -937,7 +945,7 @@ if __name__ == "__main__":
          
             g['fig_{}'.format(zfig)].canvas.draw()
         except:
-             pass
+              pass
         
         # reset sPset when changing sEPset
         sPset.eventson = False
@@ -1084,7 +1092,7 @@ if __name__ == "__main__":
     # sUinvmin = Slider(axUmin, r'$U_\mathrm{inv,min}$', 0, 1500, valinit=c['pec']['Udc_min'])
     # sUinvmin_xlim = sUinvmin.ax.get_xlim()
     # sUinvmin_xy = sUinvmin.poly.get_xy()
-    # sUinvmin_xy[np.where(sUinvmin_xy == sUinvmin_xlim[0])] = sUinvmin_xlim[-1]
+    # # sUinvmin_xy[np.where(sUinvmin_xy == sUinvmin_xlim[0])[0][0]] = sUinvmin_xlim[-1]
     # sUinvmin.poly.set_xy(sUinvmin_xy)
     
     # sUinvmax = Slider(axUmax, r'$U_\mathrm{inv,max}$', 0, 1500, valinit=c['pec']['Udc_max'])
@@ -1095,7 +1103,6 @@ if __name__ == "__main__":
     # sUinvmax.on_changed(update_dss)
     # sIinvmax.on_changed(update_dss)
     # sPinvmax.on_changed(update_dss)
-    
     
     # Initial Update of Slider Positions
     sEPset.set_val(sEPset.val)
