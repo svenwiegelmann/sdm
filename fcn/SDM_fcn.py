@@ -317,123 +317,6 @@ def compile_EP(tmp_res, calc_EPsys=False, prefix_str='cell_model[1,1].'):
 
 #%%
 def recalc_limits(res, Umax, Umin, Cratemax, Tmax, SoCmin=-0.5, SoCmax=1.5,
-                  calc_EPsys=False, prefix_str='cell_model[1,1].'):
-    """
-    Adjusts the limits of various parameters in simulation results and 
-    recalculates data arrays based on these new limits. Handles both 
-    system-level and cell-level data.
-
-    Parameters:
-    - res (list): List of dictionaries, each a set of simulation results.
-    - Umax (float): Maximum voltage limit.
-    - Umin (float): Minimum voltage limit.
-    - Cratemax (float): Maximum Crate limit.
-    - Tmax (float): Maximum temperature limit.
-    - SoCmin (float, optional): Minimum state of charge limit. Defaults
-      to -0.1.
-    - SoCmax (float, optional): Maximum state of charge limit. Defaults
-      to 1.1.
-    - calc_EPsys (bool, optional): If True, recalculates system-level 
-      data. False for cell-level data.
-    - prefix_str (str, optional): Substring for specific sub-model in 
-      result keys. Defaults to 'cell_model[1,1].'.
-
-    Returns:
-    - list: Updated simulation results with new limits.
-
-    Note:
-    - Deep copies `res` to avoid mutating original data.
-    - Uses NumPy for numerical operations and handling NaN values.
-    - Involves conditional checks for different scenarios.
-    """
-
-    loc_res = copy.deepcopy(res)
-    for rn,_ in enumerate(loc_res):
-        # if rn == 8:
-        #     0
-        try:
-            if calc_EPsys:
-                tmp_E = abs(loc_res[rn]['E_sys'][-1])
-                tmp_P = abs(loc_res[rn]['P_sys'][0])
-            else:
-                tmp_E = abs(loc_res[rn][prefix_str+'E_cell'][-1])
-                tmp_P = abs(loc_res[rn][prefix_str+'P_cell'][0])
-            
-            loc_res[rn]['U_min'] = np.array([Umin]*2)
-            loc_res[rn]['U_max'] = np.array([Umax]*2)
-            loc_res[rn]['Crate_max'] = np.array([Cratemax]*2)
-            loc_res[rn]['T_max'] = np.array([Tmax]*2)
-            loc_res[rn]['SoC_min'] = np.array([SoCmin]*2)
-            loc_res[rn]['SoC_max'] = np.array([SoCmax]*2)
-
-            # ind_s ("-1" overlapping due to symbols)
-            cond_s = {1:    loc_res[rn][prefix_str+'U_cell']-loc_res[rn]['U_max'][0]>0,
-                      # 4:    loc_res[rn][prefix_str+'Crate_cell']-loc_res[rn]['Crate_min'][0]>0,
-                      # 6:    loc_res[rn][prefix_str+'T_cell']-loc_res[rn]['T_min'][0]<0,
-                      7:    loc_res[rn][prefix_str+'SoC_cell']-loc_res[rn]['SoC_max'][0]>0}
-            
-            
-            def find_max_cond_s(cond):
-                for ii in range(len(cond)):
-                    ele = list(combinations(cond.keys(),len(cond)-ii))
-                    for n_ele,i in enumerate(ele):
-                        if all([cond[n].any() for n in i]):
-                            # print(i,max([np.where(cond[n])[0].max()-1 if np.where(cond[n])[0].max() > 0 else 0 for n in i]))
-                            return max([np.where(cond[n])[0].max()-1 if np.where(cond[n])[0].max() > 0 else 0 for n in i])
-                        else:
-                            continue
-            
-            val_s = find_max_cond_s(cond_s)
-            if val_s:
-                ind_s = val_s
-                # print(True, ind_s)
-            else:
-                ind_s = 0
-                # print(False, ind_s)
-            
-                        
-            # ind_e ("+1" overlapping due to symbols)            
-            cond_e = {2:    loc_res[rn][prefix_str+'U_cell']-loc_res[rn]['U_min'][0]<0,
-                      3:    loc_res[rn][prefix_str+'Crate_cell']-loc_res[rn]['Crate_max'][0]>0,
-                      5:    loc_res[rn][prefix_str+'T_cell']-loc_res[rn]['T_max'][0]>0,
-                      8:    loc_res[rn][prefix_str+'SoC_cell']-loc_res[rn]['SoC_min'][0]<0}
-        
-            def find_min_cond_e(cond):
-                for ii in range(len(cond)):
-                    ele = list(combinations(cond.keys(),len(cond)-ii))
-                    for n_ele,i in enumerate(ele):
-                        if all([cond[n].any() for n in i]):
-                            # print(i,min([np.where(cond[n])[0].min() for n in i])+1)
-                            return min([np.where(cond[n])[0].min() for n in i])+1
-                        else:
-                            continue
-            
-            val_e = find_min_cond_e(cond_e)
-            if val_e:
-                ind_e = val_e
-                # print(True, ind_e)
-            else:
-                ind_e = len(loc_res[rn]['time'])
-                # print(False, ind_e)
-
-            for key in loc_res[rn]:
-                if isinstance(loc_res[rn][key],np.ndarray) and key not in loc_res[rn]['_settings']['ParameterValues']:
-                    if key == prefix_str+'E_cell' or key == 'E_cell[1,1]' or key == 'E_sys': # integral quantity
-                        # print(key)
-                        loc_res[rn][key] = loc_res[rn][key][ind_s:ind_e] - loc_res[rn][key][ind_s]
-                    else:
-                        loc_res[rn][key] = loc_res[rn][key][ind_s:ind_e]
-
-            loc_res[rn]['_settings']['recalc-limits:cond_s'] = cond_s
-            loc_res[rn]['_settings']['recalc-limits:cond_e'] = cond_e
-            loc_res[rn]['_settings']['recalc-limits:ind_s'] = ind_s
-            loc_res[rn]['_settings']['recalc-limits:ind_e'] = ind_e
-                        
-        except:
-            0
-    return loc_res
-
-def recalc_limits(res, Umax, Umin, Cratemax, Tmax, SoCmin=-0.5, SoCmax=1.5,
                   calc_EPsys=False, prefix_str='cell_model[1,1].',mode='dis'):
     """
     Adjusts the limits of various parameters in simulation results and 
@@ -569,11 +452,6 @@ def recalc_limits(res, Umax, Umin, Cratemax, Tmax, SoCmin=-0.5, SoCmax=1.5,
         except:
             0
     return loc_res
-
-
-
-
-
 
 
 #%%
