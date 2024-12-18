@@ -8,7 +8,7 @@ Author:     Sven Wiegelmann,
             Appelstraße 9A,
             30167 Hannover,
             Germany
-Version:    12.12.2023
+Version:    18.12.2024
 
 Overview:
 This module, part of the System Design Method (SDM) toolkit, offers essential 
@@ -77,7 +77,12 @@ def load_results(no,print_bat_list=False):
                  8:    'M1B-1223-01',
                  9:    'M1B-1223-02',
                  10:   'SLPB8644143-45',
-                 11:   'SLPB8644143-353'}
+                 11:   'SLPB8644143-353',
+                 12:    'HE2-1123-03',
+                 13:    'HE2-1123-04',
+                 # 14:   'LF50-0423-1',
+                 # 15:   'LF50-0423-2',
+                 }
     
     if print_bat_list:
         print('List of Battery Cells:')
@@ -100,6 +105,10 @@ def load_results(no,print_bat_list=False):
         fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-01__PowerTemperatureTest_dis#1'
     if (no==5.0):
         fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-02__PowerTemperatureTest_dis#1'
+    if (no==6.0):
+        fn = 'Scienlab__ICR18650 HE2__HE2-1123-01__PowerTemperatureTest_dis#1'
+    if (no==7.0):
+        fn = 'Scienlab__ICR18650 HE2__HE2-1123-02__PowerTemperatureTest_dis#1'
     if (no==10.0):
         fn = 'Scienlab__SLPB8644143__SLPB8644143-45__PowerTemperatureTest_dis#1'
     if (no==10.1):
@@ -108,14 +117,40 @@ def load_results(no,print_bat_list=False):
         fn = 'Scienlab__SLPB8644143__SLPB8644143-353__PowerTemperatureTest_dis#1'
     if (no==11.1):
         fn = 'Scienlab__SLPB8644143__SLPB8644143-353__PowerTemperatureTest_dis#2'
+    # if (no==14.0):
+    #     fn = 'Scienlab__LF50K-73103__LF50-0423-1__PowerTemperatureTest_dis#1'
+    # if (no==15.0):
+    #     fn = 'Scienlab__LF50K-73103__LF50-0423-2__PowerTemperatureTest_dis#1'
 
     ## chg [100 - 199]
+    if (no==100.0):
+        fn = 'Scienlab__LTO20130205__LTO20130205-03__PowerTemperatureTest_chg#1'
+    if (no==101.0):
+        fn = 'Scienlab__LTO20130205__LTO20130205-05__PowerTemperatureTest_chg#1'
     if (no==104.0):
         fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-01__PowerTemperatureTest_chg#1'
     if (no==105.0):
         fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-02__PowerTemperatureTest_chg#1'
         
-    ## Variation of Umax [200 - 299]   
+    ## Variation of Umax [200 - 299]
+    if (no==200.0): # 25°C
+        fn = 'Scienlab__LTO20130205__LTO20130205-03__PowerTemperatureTest_dis-Umax-manual#1'
+    if (no==200.1): # -10°C
+        fn = 'Scienlab__LTO20130205__LTO20130205-03__PowerTemperatureTest_dis-Umax-manual#2__Tamb=-10°C'
+    if (no==200.2): # 10°C
+        fn = 'Scienlab__LTO20130205__LTO20130205-03__PowerTemperatureTest_dis-Umax-manual#3__Tamb=10°C'
+    if (no==200.3): # 40°C
+        fn = 'Scienlab__LTO20130205__LTO20130205-03__PowerTemperatureTest_dis-Umax-manual#3__Tamb=40°C'
+    
+    if (no==201.0): # 25°C
+        fn = 'Scienlab__LTO20130205__LTO20130205-05__PowerTemperatureTest_dis-Umax-manual#1'
+    if (no==201.1): # -10°C
+        fn = 'Scienlab__LTO20130205__LTO20130205-05__PowerTemperatureTest_dis-Umax-manual#2__Tamb=-10°C'
+    if (no==201.2): # 10°C
+        fn = 'Scienlab__LTO20130205__LTO20130205-05__PowerTemperatureTest_dis-Umax-manual#3__Tamb=10°C'
+    if (no==201.3): # 40°C
+        fn = 'Scienlab__LTO20130205__LTO20130205-05__PowerTemperatureTest_dis-Umax-manual#3__Tamb=40°C'
+    
     if (no==204.0):
         fn = 'Scienlab__SCiB 23Ah__SCiB-23Ah-01__PowerTemperatureTest_dis-Umax#1'
     if (no==205.0):
@@ -128,6 +163,10 @@ def load_results(no,print_bat_list=False):
         fn = 'Scienlab__SLPB8644143__SLPB8644143-45__PowerTemperatureTest_dis-Umax-manual#1'
     if (no==211.0):
         fn = 'Scienlab__SLPB8644143__SLPB8644143-353__PowerTemperatureTest_dis-Umax-manual#1'
+    if (no==212.0):
+        fn = 'Scienlab__ICR18650 HE2__HE2-1123-03__PowerTemperatureTest_dis-Umax-manual#1'
+    if (no==213.0):
+        fn = 'Scienlab__ICR18650 HE2__HE2-1123-04__PowerTemperatureTest_dis-Umax-manual#1'
         
     res = pickle.load(open('{}/data/ess/{}.pickle'.format('.',fn),'rb'))
     

@@ -8,7 +8,7 @@ Author:     Sven Wiegelmann,
             Appelstraße 9A,
             30167 Hannover,
             Germany
-Version:    12.12.2023
+Version:    18.12.2024
 
 Overview:
 This module offers a comprehensive suite of functions for conceptual design and 
@@ -38,6 +38,7 @@ Primary Functions:
 - recalc_design
 - recalc_limits
 - replot_EP_limits
+- replot_ERP
 - update_eta
 
 Secondary Functions:
@@ -312,7 +313,6 @@ def compile_EP(tmp_res, calc_EPsys=False, prefix_str='cell_model[1,1].'):
                 d['p'] = p
                 d['soc'] = soc
     return d, tmp_ind, rn_min
-
 
 
 #%%
@@ -1035,7 +1035,7 @@ def calc_intersection_curve(g, res, set_EP, zfig=2, nSoC=0, print_error=True,
 
     # find all entries in res at nSoC
     for rn,_ in enumerate(res):
-        if res[rn]['_nSoC'] == nSoC:
+        if res[rn]['_nSoC'] == nSoC and np.any(res[rn][prefix_str+'P_cell']):
             loc_res[rn] = res[rn]
             loc_Plist[rn] = res[rn][prefix_str+'P_cell'][0]
   
@@ -1140,8 +1140,8 @@ def _set_intersection_limits(g, EPline_x, EPline_y, zfig, zax, replot=False, **k
             g['pl_{}_{}_{}'.format(zfig,zax,110)][0].set_data([x]*2,[-1e20,1e20])
             g['pl_{}_{}_{}'.format(zfig,zax,111)][0].set_data([x],[yint])
         else:
-            g['pl_{}_{}_{}'.format(zfig,zax,110)] = g['ax_{}_{}'.format(zfig,zax)].plot([x]*2,[-1e20,1e20],color=farbe[2],ls='dotted',lw=1,zorder=100)
-            g['pl_{}_{}_{}'.format(zfig,zax,111)] = g['ax_{}_{}'.format(zfig,zax)].plot([x],[yint],color=farbe[2],ls='None',marker='o',markersize=4.5,zorder=100)
+            g['pl_{}_{}_{}'.format(zfig,zax,110)] = g['ax_{}_{}'.format(zfig,zax)].plot([x]*2,[-1e20,1e20],color=farbe[2],ls='dotted',lw=1,zorder=101)
+            g['pl_{}_{}_{}'.format(zfig,zax,111)] = g['ax_{}_{}'.format(zfig,zax)].plot([x],[yint],color=farbe[2],ls='None',marker='o',markersize=4.5,zorder=101)
         
         if zax == 1:
             g['an_{}_{}_{}'.format(zfig,zax,110)].xy = (x,g['ax_{}_{}'.format(zfig,zax)].get_ylim()[1])
@@ -1173,7 +1173,7 @@ def hyperbel(m):
 
 
 #%%
-def plot_dss(g, c, zfig, zax, print_opt=False, **kwargs):
+def plot_dss(g, c, zfig=3, zax=0, print_opt=False, **kwargs):
     """
     Plot the Design Solution Space (DSS) with constraints for an energy storage
     system.
@@ -1219,14 +1219,14 @@ def plot_dss(g, c, zfig, zax, print_opt=False, **kwargs):
     f_hyp1 = hyperbel((c['req']['Pac_req']/c['pec']['eta_op'])/c['cell']['Pdc_DIS_max'])
     f_hyp2 = hyperbel(c['pec']['n']*c['pec']['Pdc_max']/c['cell']['Pdc_DIS_max'])
 
-    xxmax = np.floor(xmax)
-    xxmin = np.ceil(xmin)
-    yymax = np.floor(ymax)
+    # xxmax = np.floor(xmax)
+    # xxmin = np.ceil(xmin)
+    # yymax = np.floor(ymax)
 
     xmax_P = f_hyp2(ymax)
-    xxmax_P = np.floor(xmax_P)
-    ymax_P = f_hyp1(xmax_P)
-    yymax_P = np.ceil(ymax_P)
+    # xxmax_P = np.floor(xmax_P)
+    # ymax_P = f_hyp1(xmax_P)
+    # yymax_P = np.ceil(ymax_P)
     
     loc = {}
     loc['x'] = np.linspace(max(xmin,f_hyp1(ymax)),xmax,int(1e4)) if max(xmin,f_hyp1(ymax)) <= xmax else np.array([])
@@ -1610,8 +1610,8 @@ def _print_limit_values(g, c, zfig, zax, print_pec=False, xytext=(-95,0),
     
     
 #%%
-def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].', 
-                  calc_EPsys=False, print_ann=False, plot_limit=[]):
+def plot_EP_limit(g, res, zfig=2, zax=0, rn=0, nSoC=0, prefix_str='cell_model[1,1].', 
+                  calc_EPsys=False, print_ann=False, plot_limit=[], zorder=99):
     """
     Plot extended Ragone plot (ERP) curves, representing operational limits of 
     energy storage systems.
@@ -1687,7 +1687,7 @@ def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].',
         res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[rn]['U_max'][0], Umin=res[rn]['U_min'][0], Cratemax=res[rn]['Crate_max'][0], Tmax=res[rn]['T_max'][0], SoCmin=u)
         d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc, prefix_str=prefix_str, calc_EPsys=calc_EPsys)
   
-        g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nSoCmin)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[8],marker='.',markersize=4,lw=1)
+        g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nSoCmin)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[8],marker='.',markersize=4,lw=1,zorder=zorder)
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,5,n0+nSoCmin)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][1],color=farbe[8],marker='v',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,6,n0+nSoCmin)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][2],color=farbe[8],marker='o',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,7,n0+nSoCmin)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][3],color=farbe[8],marker='d',markersize=4,ls='None')
@@ -1707,7 +1707,7 @@ def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].',
                                                     ha='center',
                                                     va='center',
                                                     bbox=bbox_args,
-                                                    zorder=100)
+                                                    zorder=zorder+1)
     n0 += nSoCmin
   
     # SoCmax
@@ -1716,7 +1716,7 @@ def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].',
         res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[rn]['U_max'][0], Umin=res[rn]['U_min'][0], Cratemax=res[rn]['Crate_max'][0], Tmax=res[rn]['T_max'][0], SoCmax=u)
         d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc, prefix_str=prefix_str, calc_EPsys=calc_EPsys)
   
-        g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nSoCmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[14],marker='.',markersize=4,lw=1)
+        g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nSoCmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[14],marker='.',markersize=4,lw=1,zorder=zorder)
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,5,n0+nSoCmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][1],color=farbe[14],marker='v',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,6,n0+nSoCmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][2],color=farbe[14],marker='o',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,7,n0+nSoCmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][3],color=farbe[14],marker='d',markersize=4,ls='None')
@@ -1736,7 +1736,7 @@ def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].',
                                                     ha='center',
                                                     va='center',
                                                     bbox=bbox_args,
-                                                    zorder=100)
+                                                    zorder=zorder+1)
     n0 += nSoCmax
     
     # Umin
@@ -1745,7 +1745,7 @@ def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].',
         res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[rn]['U_max'][0], Umin=u, Cratemax=res[rn]['Crate_max'][0], Tmax=res[rn]['T_max'][0])
         d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc,prefix_str=prefix_str, calc_EPsys=calc_EPsys)
   
-        g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nUmin)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[5],marker='.',markersize=4,lw=1)
+        g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nUmin)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[5],marker='.',markersize=4,lw=1,zorder=zorder)
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,5,n0+nUmin)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][1],color=farbe[5],marker='v',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,6,n0+nUmin)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][2],color=farbe[5],marker='o',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,7,n0+nUmin)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][3],color=farbe[5],marker='d',markersize=4,ls='None')
@@ -1782,7 +1782,7 @@ def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].',
                                                     ha='center',
                                                     va='center',
                                                     bbox=bbox_args,
-                                                    zorder=100)
+                                                    zorder=zorder+1)
     n0 += nUmin
  
     # Umax
@@ -1791,7 +1791,7 @@ def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].',
         res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=u, Umin=res[rn]['U_min'][0], Cratemax=res[rn]['Crate_max'][0], Tmax=res[rn]['T_max'][0])
         d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc, prefix_str=prefix_str, calc_EPsys=calc_EPsys)
   
-        g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nUmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[10],marker='.',markersize=4,lw=1)
+        g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nUmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[10],marker='.',markersize=4,lw=1,zorder=zorder)
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,5,n0+nUmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][1],color=farbe[10],marker='v',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,6,n0+nUmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][2],color=farbe[10],marker='o',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,7,n0+nUmax)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][3],color=farbe[10],marker='d',markersize=4,ls='None')
@@ -1831,7 +1831,7 @@ def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].',
                                                     ha='center',
                                                     va='center',
                                                     bbox=bbox_args,
-                                                    zorder=100)
+                                                    zorder=zorder+1)
         
     n0 += nUmax
   
@@ -1841,7 +1841,7 @@ def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].',
         res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[rn]['U_max'][0], Umin=res[rn]['U_min'][0], Cratemax=u, Tmax=res[rn]['T_max'][0])
         d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc, prefix_str=prefix_str, calc_EPsys=calc_EPsys)
   
-        g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nCratemax+1)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[3],marker='.',markersize=4,alpha=1,lw=1)
+        g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nCratemax+1)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[3],marker='.',markersize=4,alpha=1,lw=1,zorder=zorder)
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,5,n0+nCratemax+1)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][1],color=farbe[3],marker='v',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,6,n0+nCratemax+1)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][2],color=farbe[3],marker='o',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,7,n0+nCratemax+1)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][3],color=farbe[3],marker='d',markersize=4,ls='None')
@@ -1859,7 +1859,7 @@ def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].',
                                                     ha='center',
                                                     va='center',
                                                     bbox=bbox_args,
-                                                    zorder=100)
+                                                    zorder=zorder+1)
     n0 += nCratemax
  
     # Tmax
@@ -1870,7 +1870,7 @@ def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].',
         res_recalc = recalc_limits(res, prefix_str=prefix_str, Umax=res[rn]['U_max'][0], Umin=res[rn]['U_min'][0], Cratemax=res[rn]['Crate_max'][0], Tmax=u)
         d_recalc, tmp_ind_recalc, rn_min_recalc = compile_EP(res_recalc, prefix_str=prefix_str, calc_EPsys=calc_EPsys)
   
-        g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nTmax+1)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[2],marker='.',markersize=4,alpha=1,lw=1)
+        g['pl_{}_{}_{}_{}'.format(zfig,zax,4,n0+nTmax+1)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][0],color=farbe[2],marker='.',markersize=4,alpha=1,lw=1,zorder=zorder)
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,5,n0+nTmax+1)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][1],color=farbe[2],marker='v',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,6,n0+nTmax+1)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][2],color=farbe[2],marker='o',markersize=4,ls='None')
         # g['pl_{}_{}_{}_{}'.format(zfig,zax,7,n0+nTmax+1)] = g['ax_{}_{}'.format(zfig,zax)].plot(d_recalc['p'],d_recalc[nSoC][3],color=farbe[2],marker='d',markersize=4,ls='None')   
@@ -1908,13 +1908,13 @@ def plot_EP_limit(g, zfig, zax, res, rn, nSoC=0, prefix_str='cell_model[1,1].',
                                                     ha='center',
                                                     va='center',
                                                     bbox=bbox_args,
-                                                    zorder=100)
+                                                    zorder=zorder+1)
     n0 += nTmax
 
     # Envelope
     d, tmp_ind, rn_min = compile_EP(res, prefix_str=prefix_str, calc_EPsys=calc_EPsys)
     
-    g['pl_{}_{}_{}_{}'.format(zfig,zax,0,n0+nSoC+3)] = g['ax_{}_{}'.format(zfig,zax)].plot(d['p'],d[nSoC][0],color=farbe[nSoC],marker='.',markersize=6,alpha=1,lw=1.5,zorder=100)#,label='{}'.format(round(SoC_set[nSoC],1)),zorder=100)
+    g['pl_{}_{}_{}_{}'.format(zfig,zax,0,n0+nSoC+3)] = g['ax_{}_{}'.format(zfig,zax)].plot(d['p'],d[nSoC][0],color=farbe[nSoC],marker='.',markersize=6,alpha=1,lw=1.5,zorder=zorder+1)#,label='{}'.format(round(SoC_set[nSoC],1)),zorder=100)
     # g['pl_{}_{}_{}_{}'.format(zfig,zax,1,n0+nSoC+2)] = g['ax_{}_{}'.format(zfig,zax)].plot(d['p'],d[nSoC][1],color=farbe[nSoC],marker='v',markersize=6,ls='None',alpha=alph)
     # g['pl_{}_{}_{}_{}'.format(zfig,zax,2,n0+nSoC+2)] = g['ax_{}_{}'.format(zfig,zax)].plot(d['p'],d[nSoC][2],color=farbe[nSoC],marker='o',markersize=6,ls='None',alpha=alph)
     # g['pl_{}_{}_{}_{}'.format(zfig,zax,3,n0+nSoC+2)] = g['ax_{}_{}'.format(zfig,zax)].plot(d['p'],d[nSoC][3],color=farbe[nSoC],marker='d',markersize=6,ls='None',alpha=alph)
@@ -2002,14 +2002,16 @@ def plot_limit_loci(g, zfig, zax, c, res, prefix_str='cell_model[1,1].',
     set_EP = c['req']['E/P_req']
     set_P = c['cell']['Pdc_DIS_max']
     
-    dp_intersection = calc_intersection_curve(g,res,set_EP,prefix_str=prefix_str,print_error=False)
+    dp_intersection = calc_intersection_curve(g,res,set_EP,prefix_str=prefix_str,print_error=False) ### <-- HIER ÄNDERUNG NOTWENDIG
     EPline_x = dp_intersection['valx_P']
     EPline_y = dp_intersection[prefix_str+'P_cell']
     id_min = min([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
     id_max = max([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
     sPmaxset = EPline_x[id_min] if set_P < EPline_x[id_min] else (EPline_x[id_max] if set_P > EPline_x[id_max] else set_P)
    
-    
+    # Modification for updating 'Umax'
+    dp_intersection['U_max'] = np.where(~np.isnan(dp_intersection['U_max']), c['cell']['Udc_max'], dp_intersection['U_max'])
+   
     # Evolution of Limits Intersection Points (Loci)
     xmin = c['pec']['Udc_min']/dp_intersection[prefix_str+'U_cell']
     xmax = c['pec']['Udc_max']/dp_intersection['U_max']
@@ -2031,11 +2033,11 @@ def plot_limit_loci(g, zfig, zax, c, res, prefix_str='cell_model[1,1].',
     _,sImaxset = _set_intersection_limits(g,EPline_x,dp_intersection[prefix_str+'I_cell'],zfig,zax,x=sPmaxset,replot=True)
     _,sUmaxset = _set_intersection_limits(g,EPline_x,dp_intersection['U_max'],zfig,zax,x=sPmaxset,replot=True)
    
+    
     xxmin = c['pec']['Udc_min']/sUminset
     xxmax = c['pec']['Udc_max']/sUmaxset
     yymin = c['pec']['n']*c['pec']['Idc_max']/sImaxset
     ff_hypP = hyperbel((c['req']['Pac_req']/c['pec']['eta_op'])/sPmaxset)
-    
         
     # Limit
     xlim = kwargs['xlim'] if ('xlim' in kwargs and kwargs['xlim']) else g['ax_{}_{}'.format(zfig,zax)].get_xlim()
@@ -2269,7 +2271,7 @@ def plot_iso_intersection_curves(g, zfig, zax, c, res,
     
     # Settings
     farbe = plot_preferences.plot_pre()[0]
-    lstyle  = plot_preferences.plot_pre()[-1]
+    # lstyle  = plot_preferences.plot_pre()[-1]
     bbox_args = dict(boxstyle="round",color='None',fc='1',lw=0)
     alph = 0.33
 
@@ -2277,16 +2279,19 @@ def plot_iso_intersection_curves(g, zfig, zax, c, res,
     for nEP,set_EP in enumerate(iso_mins):
         try:
             dp_intersection = calc_intersection_curve(g,res,set_EP,prefix_str=prefix_str,print_error=False)
-            EPline_x = dp_intersection['valx_P']
+            # EPline_x = dp_intersection['valx_P']
             EPline_y = dp_intersection[prefix_str+'P_cell'] # wenn es intersections gibt, dann enthält dp_intersection > 2 elements!
-            id_min = min([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
+            # id_min = min([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
             id_max = max([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
             
+            # Modification for updating 'Umax' 
+            dp_intersection['U_max'] = np.where(~np.isnan(dp_intersection['U_max']), c['cell']['Udc_max'], dp_intersection['U_max'])
+            
             if var=='Umin':
-                g['pl_{}_{}_{}'.format(zfig,zax,nEP+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(dp_intersection[prefix_str+'P_cell'],dp_intersection[prefix_str+'U_cell'],color=farbe[5],alpha=alph,lw=0.75,zorder=0)
+                g['pl_{}_{}_{}_{}'.format(zfig,zax,1,nEP)] = g['ax_{}_{}'.format(zfig,zax)].plot(dp_intersection[prefix_str+'P_cell'],dp_intersection[prefix_str+'U_cell'],color=farbe[5],alpha=alph,lw=0.75,zorder=0)
             
                 if print_ann:
-                    g['iso_{}_{}_{}'.format(zfig,zax,nEP)] = g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}'.format(_text_EP_units(set_EP*60)),
+                    g['iso_{}_{}_{}_{}'.format(zfig,zax,1,nEP)] = g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}'.format(_text_EP_units(set_EP*60)),
                                                         (dp_intersection[prefix_str+'P_cell'][id_max],dp_intersection[prefix_str+'U_cell'][id_max]),
                                                         textcoords="offset points",
                                                         xytext=(0,-5),
@@ -2299,10 +2304,10 @@ def plot_iso_intersection_curves(g, zfig, zax, c, res,
                                                         zorder=0)
                 
             elif var=='Imax':
-                g['pl_{}_{}_{}'.format(zfig,zax,nEP+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(dp_intersection[prefix_str+'P_cell'],dp_intersection[prefix_str+'I_cell'],color=farbe[3],alpha=alph,lw=0.75,zorder=0)
+                g['pl_{}_{}_{}_{}'.format(zfig,zax,2,nEP)] = g['ax_{}_{}'.format(zfig,zax)].plot(dp_intersection[prefix_str+'P_cell'],dp_intersection[prefix_str+'I_cell'],color=farbe[3],alpha=alph,lw=0.75,zorder=0)
     
                 if print_ann:
-                    g['iso_{}_{}_{}'.format(zfig,zax,nEP)] = g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}'.format(_text_EP_units(set_EP*60)),
+                    g['iso_{}_{}_{}_{}'.format(zfig,zax,2,nEP)] = g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}'.format(_text_EP_units(set_EP*60)),
                                                         (dp_intersection[prefix_str+'P_cell'][id_max],dp_intersection[prefix_str+'I_cell'][id_max]),
                                                         textcoords="offset points",
                                                         xytext=(0,5),
@@ -2321,13 +2326,13 @@ def plot_iso_intersection_curves(g, zfig, zax, c, res,
                 ymin = c['pec']['n']*c['pec']['Idc_max']/dp_intersection[prefix_str+'I_cell']
                 f_hypP = hyperbel((c['req']['Pac_req']/c['pec']['eta_op'])/dp_intersection[prefix_str+'P_cell'])
                 
-                if 'pl_{}_{}_{}'.format(zfig,zax,nEP+200) not in g:                
-                    g['pl_{}_{}_{}'.format(zfig,zax,nEP+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(xmin,f_hypP(xmin),color=farbe[5],alpha=alph,lw=0.75,zorder=0)
-                    g['pl_{}_{}_{}'.format(zfig,zax,nEP+len(iso_mins)+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(f_hypP(ymin),ymin,color=farbe[3],alpha=alph,lw=0.75,zorder=0)
-                    g['pl_{}_{}_{}'.format(zfig,zax,nEP+2*len(iso_mins)+200)] = g['ax_{}_{}'.format(zfig,zax)].plot(xmax,f_hypP(xmax),color=farbe[4],alpha=alph,lw=0.75,zorder=0)
+                if 'pl_{}_{}_{}_{}'.format(zfig,zax,0,nEP) not in g:                
+                    g['pl_{}_{}_{}_{}'.format(zfig,zax,0,nEP)] = g['ax_{}_{}'.format(zfig,zax)].plot(xmin,f_hypP(xmin),color=farbe[5],alpha=alph,lw=0.75,zorder=0)
+                    g['pl_{}_{}_{}_{}'.format(zfig,zax,0,nEP+len(iso_mins))] = g['ax_{}_{}'.format(zfig,zax)].plot(f_hypP(ymin),ymin,color=farbe[3],alpha=alph,lw=0.75,zorder=0)
+                    g['pl_{}_{}_{}_{}'.format(zfig,zax,0,nEP+2*len(iso_mins))] = g['ax_{}_{}'.format(zfig,zax)].plot(xmax,f_hypP(xmax),color=farbe[4],alpha=alph,lw=0.75,zorder=0)
                     
                     if print_ann:
-                        g['iso_{}_{}_{}'.format(zfig,zax,nEP)] = g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}'.format(_text_EP_units(set_EP*60)),
+                        g['iso_{}_{}_{}_{}'.format(zfig,zax,0,nEP)] = g['ax_{}_{}'.format(zfig,zax)].annotate(r'{}'.format(_text_EP_units(set_EP*60)),
                                                             (f_hypP(ymin)[~np.isnan(ymin)][-1],ymin[~np.isnan(ymin)][-1]),
                                                             textcoords="offset points",
                                                             xytext=(10,-2.5),
@@ -2339,12 +2344,12 @@ def plot_iso_intersection_curves(g, zfig, zax, c, res,
                                                             bbox=bbox_args,
                                                             zorder=0)
                 else:
-                    g['pl_{}_{}_{}'.format(zfig,zax,nEP+200)][0].set_data(xmin,f_hypP(xmin))
-                    g['pl_{}_{}_{}'.format(zfig,zax,nEP+len(iso_mins)+200)][0].set_data(f_hypP(ymin),ymin)
-                    g['pl_{}_{}_{}'.format(zfig,zax,nEP+2*len(iso_mins)+200)][0].set_data(xmax,f_hypP(xmax))
+                    g['pl_{}_{}_{}_{}'.format(zfig,zax,0,nEP)][0].set_data(xmin,f_hypP(xmin))
+                    g['pl_{}_{}_{}_{}'.format(zfig,zax,0,nEP+len(iso_mins))][0].set_data(f_hypP(ymin),ymin)
+                    g['pl_{}_{}_{}_{}'.format(zfig,zax,0,nEP+2*len(iso_mins))][0].set_data(xmax,f_hypP(xmax))
                     
                     if print_ann:
-                        g['iso_{}_{}_{}'.format(zfig,zax,nEP)].xy = (f_hypP(ymin)[~np.isnan(ymin)][-1],ymin[~np.isnan(ymin)][-1])
+                        g['iso_{}_{}_{}_{}'.format(zfig,zax,0,nEP)].xy = (f_hypP(ymin)[~np.isnan(ymin)][-1],ymin[~np.isnan(ymin)][-1])
         
         except: # warning
             print('[Warning] No intersection curve for E/P = {} was calculated.'.format(_text_EP_units(set_EP*60)))
@@ -2440,7 +2445,6 @@ def plot_constraint_intersection_trajectory(g, res, c, zfig=4,
     id_max = max([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
     sPmaxset = EPline_x[id_min] if set_P < EPline_x[id_min] else (EPline_x[id_max] if set_P > EPline_x[id_max] else set_P)
 
-
     # ax 0
     g['pl_{}_{}_{}'.format(zfig,0,0)][0].set_data(dp_intersection[prefix_str+'P_cell'],dp_intersection[prefix_str+'U_cell'])
     _,sUminset = _set_intersection_limits(g,EPline_x,dp_intersection[prefix_str+'U_cell'],zfig,0,x=sPmaxset,replot=True)
@@ -2452,7 +2456,6 @@ def plot_constraint_intersection_trajectory(g, res, c, zfig=4,
     
     # ax 2
     plot_limit_loci(g,zfig,2,c,res,prefix_str=prefix_str,printapp=True)
-    
     plot_iso_intersection_curves(g,zfig,2,c,res,prefix_str=prefix_str,iso_mins=iso_mins,var='general',print_ann=False)
         
     g['fig_{}'.format(zfig)].canvas.draw()
@@ -2461,7 +2464,7 @@ def plot_constraint_intersection_trajectory(g, res, c, zfig=4,
     
 #%%
 def replot_EP_limits(g, res, tmp_ind, pub_lim, zfig=1, 
-                     nPref=15, calc_EPsys=False, print_ann=False, bool_loc_ax_limits = True, 
+                     nPref=15, calc_EPsys=False, print_ann=False, bool_loc_ax_limits=True, 
                      prefix_str='cell_model[1,1].'):
     """
     Update and replot the Extended Ragone Plot (ERP) and measurement data
@@ -2484,6 +2487,7 @@ def replot_EP_limits(g, res, tmp_ind, pub_lim, zfig=1,
     - nPref (int, optional): Index for specific data points. Defaults to 15.
     - calc_EPsys (bool, optional): Flag for system EP calculation. Defaults to False.
     - print_ann (bool, optional): Flag for printing annotations. Defaults to False.
+    - bool_loc_ax_limits (bool, optional): If True, uses local axis limits. Defaults to `True`.
     - prefix_str (str, optional): Sub-model string for results. Defaults to 'cell_model[1,1]'.
 
     Returns:
@@ -2492,7 +2496,13 @@ def replot_EP_limits(g, res, tmp_ind, pub_lim, zfig=1,
     Notes:
     - Crucial for maintaining ERP accuracy under new operational limits.
     - Aids in analyzing impacts of various limits on system behavior.
+
+     Dependencies:
+    - Requires `recalc_limits` for recalculating limits.
+    - Utilizes `compile_EP` for compiling ERP data.
+    - Depends on `calc_design` for SoC-based calculations and dynamic ERP adjustments.
     """
+
     print("\n[Info] Submit New EP Limits")
     for key in pub_lim:
         print('{} = {}'.format(key,pub_lim[key]['cut']))
@@ -2650,7 +2660,7 @@ def replot_EP_limits(g, res, tmp_ind, pub_lim, zfig=1,
                 tmp_E = res_recalc[rn][prefix_str+'E_cell'] + (res[rn][prefix_str+'E_cell'][res_recalc[rn]['_settings']['recalc-limits:ind_s']-1] if res_recalc[rn]['_settings']['recalc-limits:ind_s'] > 0 else 0)
                 tmp_I = res_recalc[rn][prefix_str+'I_cell']
                 g['pl_{}_{}_{}_{}'.format(zfig,2,1,rn)][0].set_data(tmp_E,tmp_I)
-
+    
                 loc_Imax = pub_lim['Cratemax']['cut'] * res[rn_min]['_settings']['ParameterValues']['Q_n'][0]
                 g['pl_{}_{}_{}'.format(zfig,2,0)][0].set_ydata([loc_Imax]*2)
                 g['pl_{}_{}_{}'.format(zfig,2,0)][0].set_visible(1 if pub_lim['Cratemax']['cut']<pub_lim['Cratemax']['val'] else 0)
@@ -2664,4 +2674,87 @@ def replot_EP_limits(g, res, tmp_ind, pub_lim, zfig=1,
     # g['pl_{}_{}_{}'.format(zfig,1,3)][0].set_data(xlim,[res_recalc[rn_min_recalc]['U_max'][0]]*2)
     # g['pl_{}_{}_{}'.format(zfig,2,2)][0].set_data(xlim,[res_recalc[rn_min_recalc]['Crate_max'][0]]*2)
    
-    plt.draw()
+    g['fig_{}'.format(zfig)].canvas.draw()
+        
+   
+        
+#%%
+def replot_ERP(g,res,c,sPset,set_EP,set_P,zfig=2,prefix_str='cell_model[1,1].'):
+    """
+    Dynamically updates and replots the Extended Ragone Plot (ERP) based on 
+    user-adjusted slider values for energy-to-power ratio (E/P) and maximum 
+    cell power.
+
+    Parameters:
+    - g (dict): Dictionary containing matplotlib graph objects (e.g., figures, axes, and plots).
+    - res (list): List of dictionaries with simulation or experimental results.
+    - c (dict): Dictionary representing the current state of the energy storage system.
+    - sPset (object): Slider object controlling the maximum power (`Pdc_DIS_max`) setting.
+    - set_EP (float): Adjusted energy-to-power ratio value.
+    - set_P (float): Adjusted maximum cell power value.
+    - zfig (int, optional): Figure index for updating plots in the ERP visualization. Defaults to 2.
+    - prefix_str (str, optional): Prefix string for sub-model keys in the results. Defaults to `'cell_model[1,1].'`.
+
+    Returns:
+    - None: Updates plots and system parameters dynamically.
+
+    Notes:
+    - Recalculates intersection curves to align with the new E/P ratio (`set_EP`) and maximum power (`set_P`).
+    - Adjusts system design parameters (`Udc_min`, `Idc_DIS_max`, `Pdc_DIS_max`) and reassigns limits for better alignment with user inputs.
+    - Updates the ERP plots across diverse subplots.
+    - Resets and recalibrates the `sPset` slider to match the updated power limits.
+    - Integrates seamless interaction between sliders and the visualization, ensuring real-time updates.
+
+    Dependencies:
+    - Utilizes `calc_intersection_curve` to compute intersection curves based on the new E/P ratio.
+    - Relies on `_set_intersection_limits` for adjusting axis and plot boundaries dynamically.
+    - Requires access to the `g`, `res`, and `c` dictionaries, as well as the `sPset` slider object.
+    """
+    
+    print("[Info] Calculation of E/P Intersection Curves")
+    print("E/P_req = {:.5f} h".format(set_EP))
+    
+    dp_intersection = calc_intersection_curve(g,res,set_EP,print_error=False,prefix_str=prefix_str)
+    EPline_x = dp_intersection['valx_P']
+    EPline_y = dp_intersection[prefix_str+'P_cell']
+    id_min = min([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
+    id_max = max([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
+    sPmaxset = EPline_x[id_min] if set_P < EPline_x[id_min] else (EPline_x[id_max] if set_P > EPline_x[id_max] else set_P)
+    
+    try:
+        g['pl_{}_{}_{}'.format(zfig,0,100)][0].set_data(EPline_x,dp_intersection['valy_E'])
+        _,sEmaxset = _set_intersection_limits(g,EPline_x,dp_intersection['valy_E'],zfig,0,x=sPmaxset,replot=True)
+
+        g['pl_{}_{}_{}'.format(zfig,1,100)][0].set_data(EPline_x,dp_intersection[prefix_str+'U_cell'])
+        id_max = max([n for n,i in enumerate(dp_intersection[prefix_str+'U_cell']) if ~np.isnan(i)])
+        g['pl_{}_{}_{}'.format(zfig,1,101)][0].set_data([EPline_x[id_max]],[dp_intersection[prefix_str+'U_cell'][id_max]])
+        _,sUminset = _set_intersection_limits(g,EPline_x,dp_intersection[prefix_str+'U_cell'],zfig,1,x=sPmaxset,replot=True)
+        
+        g['pl_{}_{}_{}'.format(zfig,2,100)][0].set_data(EPline_x,dp_intersection[prefix_str+'I_cell'])
+        id_max = max([n for n,i in enumerate(dp_intersection[prefix_str+'I_cell']) if ~np.isnan(i)])
+        g['pl_{}_{}_{}'.format(zfig,2,101)][0].set_data([EPline_x[id_max]],[dp_intersection[prefix_str+'I_cell'][id_max]])
+        _,sImaxset = _set_intersection_limits(g,EPline_x,dp_intersection[prefix_str+'I_cell'],zfig,2,x=sPmaxset,replot=True)
+     
+        g['fig_{}'.format(zfig)].canvas.draw()
+    except:
+          pass
+     
+    # reset sPset when changing sEPset
+    sPset.eventson = False
+    sPset.valmin = dp_intersection['valx_P'][id_min]
+    sPset.valmax = dp_intersection['valx_P'][id_max]
+    sPset.vline.set_data([sPset.valmax]*2,sPset.vline.get_data()[-1])
+    # sPset.hline.set_data(sPset.hline.get_data()[0],[sPset.valmax]*2)
+    sPset.set_val(sPmaxset)
+    sPset.eventson = True
+     
+    try:
+        c['cell']['Udc_min'] = sUminset
+        c['cell']['Idc_DIS_max'] = sImaxset
+        c['cell']['Pdc_DIS_max'] = sPmaxset
+        # update_dss(0)
+    except:
+        pass
+  
+    # print('[Info] tReplot = {:.3f}s'.format(time.time()-tic))    
+    return
