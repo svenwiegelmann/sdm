@@ -8,7 +8,7 @@ Author:     Sven Wiegelmann,
             Appelstraße 9A,
             30167 Hannover,
             Germany
-Version:    12.12.2023
+Version:    18.12.2024
 
 Overview:
 SDM_main.py is the core interactive tool of the System Design Method (SDM) suite,
@@ -43,7 +43,7 @@ Notes:
 import matplotlib as mpl
 mpl.use('Qt5Agg')
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider#, TextBox, Button, RadioButtons, RangeSlider
+from matplotlib.widgets import Slider# TextBox, Button, RadioButtons, RangeSlider
 
 import numpy as np
 
@@ -96,9 +96,10 @@ if __name__ == "__main__":
     num_SoC = 11
     SoC_set = np.linspace(1,0,num_SoC)
     
-
+    
     # Input: Cell-based (Measurement) Data of Energy Storage System
-    load_res = SDM_data.load_results(0,True)
+    global res
+    load_res = SDM_data.load_results(0.0,True)
     
     if isinstance(load_res,list):
         load_res_keys = []
@@ -114,11 +115,18 @@ if __name__ == "__main__":
         key_res = 'indU=0'
         res = load_res[key_res]
     
+    if isinstance(load_res,dict) and 'ocv' in load_res:
+        load_ocv = load_res['ocv']
+        load_res.pop('ocv',None)
+        load_res_keys = list(load_res.keys())
+    
+    tmp_res = res
+    
     # Evaluation of Parameters for ERP Generation 
     d, tmp_ind, rn_min = SDM_fcn.compile_EP(res,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
     res_recalc = SDM_fcn.recalc_limits(res, Umax=res[rn_min]['U_max'][0], Umin=res[rn_min]['U_min'][0], Cratemax=res[rn_min]['Crate_max'][0], Tmax=res[rn_min]['T_max'][0],prefix_str=prefix_str)
     d_recalc, tmp_ind_recalc, rn_min_recalc = SDM_fcn.compile_EP(res_recalc,calc_EPsys=calc_EPsys,prefix_str=prefix_str)
-    
+
     
     # Component settings based on General Design Topology
     def set_case(no):
@@ -153,7 +161,7 @@ if __name__ == "__main__":
                           'Pdc_DIS_max':    res[rn_min]['U_max'][0]*res[rn_min]['I_dis_max'][0]})
             c['mod'] =({'xS': 1,
                         'yP': 1})
-        
+                
         ## Case Studies
         if (no==0): # DSS Explanation
             c['req'] = SDM_data.set_app(0)
@@ -167,12 +175,8 @@ if __name__ == "__main__":
             c['mod']['xS'] = 4
             c['mod']['yP'] = 2
             
-            update_dp(c['req']['E/P_req'],
-                      c['pec']['Udc_min'],
-                      c['pec']['Udc_max'],
-                      c['pec']['Idc_max'],
-                      c['pec']['Pdc_max'],
-                      100)
+            set_dp(set_EPreq=c['req']['E/P_req'],
+                   set_Pmax=100)
             
             # Hide Ticklabels
             plot_preferences.hide_ticklabels(g['ax_{}_{}'.format(3,0)].xaxis)
@@ -192,11 +196,7 @@ if __name__ == "__main__":
             c['mod']['xS'] = 2
             c['mod']['yP'] = 1
             
-            update_dp(c['req']['E/P_req'],
-                   c['pec']['Udc_min'],
-                   c['pec']['Udc_max'],
-                   c['pec']['Idc_max'],
-                   c['pec']['Pdc_max'])
+            set_dp(set_EPreq=c['req']['E/P_req'])
             
         if no in [2,3,4]: # no DSS available --> Limit Variation
             c['req'] = SDM_data.set_app(2)
@@ -207,12 +207,8 @@ if __name__ == "__main__":
             c['mod']['xS'] = 2
             c['mod']['yP'] = 2
             
-            update_dp(c['req']['E/P_req'],
-                   c['pec']['Udc_min'],
-                   c['pec']['Udc_max'],
-                   c['pec']['Idc_max'],
-                   c['pec']['Pdc_max'],
-                   0 if (no==2) else 138 if (no==3) else 133)
+            set_dp(set_EPreq=c['req']['E/P_req'],
+                   set_Pmax=0 if (no==2) else 138 if (no==3) else 133)
 
         if (no==5): # no DSS ever available
             c['req'] = SDM_data.set_app(3)
@@ -223,11 +219,7 @@ if __name__ == "__main__":
             c['mod']['xS'] = 1
             c['mod']['yP'] = 1
             
-            update_dp(c['req']['E/P_req'],
-                   c['pec']['Udc_min'],
-                   c['pec']['Udc_max'],
-                   c['pec']['Idc_max'],
-                   c['pec']['Pdc_max'])
+            set_dp(set_EPreq=c['req']['E/P_req'])
             
         if no in [6,7]: # Methodology Comparison
             c['req'] = SDM_data.set_app(3)
@@ -243,11 +235,7 @@ if __name__ == "__main__":
             
             c['req']['E/P_req'] = Ecell_nom/Pcell_nom
                         
-            update_dp(c['req']['E/P_req'],
-                    c['pec']['Udc_min'],
-                    c['pec']['Udc_max'],
-                    c['pec']['Idc_max'],
-                    c['pec']['Pdc_max'])
+            set_dp(set_EPreq=c['req']['E/P_req'])
     
     global c
     c = {}
@@ -332,9 +320,15 @@ if __name__ == "__main__":
     for key in pub_lim:
         pub_lim[key]['cut'] = pub_lim[key]['val']
 
-    # ## Calculate specific Operating Limits
-    # pub_lim['Umin']['cut'] = 1.95
-    # pub_lim['Cratemax']['cut'] = 4.25
+    ## Calculate specific Operating Limits
+    pub_lim['Umin']['cut'] = 1.95
+    pub_lim['Cratemax']['cut'] = 4.25
+
+    # # # pub_lim['Umax']['cut'] = 2.7
+    # pub_lim['Umax'].update({'ocv': {'calc_SoC': True,
+    #                                 'SoC':  SoC_chg,
+    #                                 'pOCV': pOCV_chg}})
+
 
     z = 1
     grid = plt.GridSpec(1,3, wspace=0.55, hspace=0.05)
@@ -442,7 +436,7 @@ if __name__ == "__main__":
         for nP in range(max(tmp_ind)[1]+1):
             rn = [item[0] for item in tmp_ind if item[1]==nP and item[2]==nSoC][0]
             try:
-                if np.mod(nP,3):# "thinning"
+                if np.mod(nP,1):# "thinning"
                     continue
                 alph = 1/3
                 g['pl_{}_{}_{}_{}'.format(z,1,0,rn)] = g['ax_{}_{}'.format(z,1)].plot(res[rn][prefix_str+'E_cell'],res[rn][prefix_str+'U_cell'],color=farbe[nSoC],lw=0.75,alpha=alph)
@@ -509,7 +503,7 @@ if __name__ == "__main__":
         for nP in range(max(tmp_ind)[1]+1):
             rn = [item[0] for item in tmp_ind if item[1]==nP and item[2]==nSoC][0]
             try:
-                if np.mod(nP,3):# "thinning"
+                if np.mod(nP,1):# "thinning"
                     continue
                 alph = 1/3
                 g['pl_{}_{}_{}_{}'.format(z,2,0,rn)] = g['ax_{}_{}'.format(z,2)].plot(res[rn][prefix_str+'E_cell'],res[rn][prefix_str+'I_cell'],color=farbe[nSoC],lw=0.75,alpha=0.33)
@@ -609,7 +603,7 @@ if __name__ == "__main__":
         g['ax_{}_{}'.format(z,0)] = g['fig_{}'.format(z)].add_subplot(grid[:,:-1]) 
         # g['ax_{}_{}'.format(z,0)].grid()
    
-    SDM_fcn.plot_EP_limit(g,z,0, res, rn_min, prefix_str=prefix_str, plot_limit=['Umin','Cratemax'])
+    SDM_fcn.plot_EP_limit(g, res, z, 0, rn_min, prefix_str=prefix_str, plot_limit=['Umin','Cratemax'])
    
     # Labeling
     g['ax_{}_{}'.format(z,0)].set_xlabel('Cell power, $P^\mathrm{{dis}}_\mathrm{cell}$ in W')
@@ -624,7 +618,7 @@ if __name__ == "__main__":
     # Plot: Intersection Curves of Operational Quantities (by Limit Variation) 
     # -------------------------------------------------------------------------        
     dp_intersection = SDM_fcn.calc_intersection_curve(g,res,c['req']['E/P_req'],print_error=False,prefix_str=prefix_str)
-    g['pl_{}_{}_{}'.format(z,0,100)] = g['ax_{}_{}'.format(z,0)].plot(dp_intersection['valx_P'],dp_intersection['valy_E'],color=farbe[2])
+    g['pl_{}_{}_{}'.format(z,0,100)] = g['ax_{}_{}'.format(z,0)].plot(dp_intersection['valx_P'],dp_intersection['valy_E'],color=farbe[2],zorder=100)
     SDM_fcn._set_intersection_limits(g,dp_intersection['valx_P'],dp_intersection['valy_E'],z,0)
 
 
@@ -643,7 +637,7 @@ if __name__ == "__main__":
         g['pl_{}_{}_{}'.format(z,1,110)] = g['ax_{}_{}'.format(z,1)].plot([dp_intersection['valx_P'][id_max]]*2,[-1e20,1e20],color=farbe[2],ls='dotted',lw=1)
         g['pl_{}_{}_{}'.format(z,1,111)] = g['ax_{}_{}'.format(z,1)].plot(dp_intersection['valx_P'][id_max],yint,color=farbe[2],ls='None',marker='o',markersize=4.5)     
     except:
-        0
+        0 
     
     plot_preferences.hide_ticklabels(g['ax_{}_{}'.format(z,1)].xaxis)
     g['ax_{}_{}'.format(z,1)].set_ylabel('Minimum cell voltage,\n$U_\mathrm{min}$ in V')
@@ -663,7 +657,7 @@ if __name__ == "__main__":
                                       zorder=100)
     
     
-    # ax1
+    # ax2
     if 'ax_{}_{}'.format(z,2) not in g:
         g['ax_{}_{}'.format(z,2)] = g['fig_{}'.format(z)].add_subplot(grid[1,-1:],sharex=g['ax_{}_{}'.format(z,1)]) 
         # g['ax_{}_{}'.format(z,2)].grid()
@@ -772,7 +766,6 @@ if __name__ == "__main__":
 
     SDM_fcn.plot_iso_intersection_curves(g,z,1,c,res,prefix_str=prefix_str,iso_mins=iso_mins,var='Imax',print_ann=False)
 
-
     # Labeling
     g['ax_{}_{}'.format(z,1)].set_xlabel('Maximum cell power, $P^\mathrm{dis}_\mathrm{cell,max}$ in W')
     g['ax_{}_{}'.format(z,1)].set_xlim([0,70 if sim_limits else res[rn_min]['lim_P_dis_max']])
@@ -860,11 +853,108 @@ if __name__ == "__main__":
 
 
     #%%
-    # Slider Widget
+    # Slider Widget Functions
+    # -------------------------------------------------------------------------
+    def update_plots(slider_name, val):
+        """
+        Handles updates to plots and system parameters in response to slider changes.
+    
+        Parameters:
+        - slider_name (str): Name of the slider triggering the update.
+        - val (float): The new value of the slider.
+    
+        Returns:
+        - None:  Updates the global `state` dictionary, recalculates system parameters, 
+          and refreshes plots across multiple figures.
+    
+        Note:
+        - Updates the `state` dictionary to reflect new slider values.
+        - Adjusts the energy-to-power ratio, maximum power, and cell-specific parameters.
+        - Handles plot updates across multiple figures:
+            - Fig. 1: ERP visualization (`U(E)`, `I(E)`, and ERP limits).
+            - Fig. 2: ERP limit intersections (`Imax(Pmax)` and `Umin(Pmax)`).
+            - Fig. 3: Constraint Satisfaction Problem (CSP) and Decision Support System (DSS) plots.
+            - Fig. 4: Graphical synthesis including iso-intersection curves and trajectories.
+        - Removes deprecated plot elements (e.g., ERP limits, intersection trajectories) 
+        - Integrates feedback loops between slider values, system constraints, and plot elements.
+          If not required, set bool_loc_ax_limits=True!
+    
+        Dependencies:
+        - Relies on `plot_preferences` for plot management (e.g., removing outdated objects).
+        - Uses `SDM_fcn` for recalculating and replotting ERP, CSP, and limit intersections.
+        - Requires access to a global `state` dictionary for storing intermediate 
+          values and slider configurations.
+        """
+        # Update slider value
+        state["slider_values"][slider_name] = val
+        
+        # Update state['c']
+        state['c']['req']['E/P_req'] = state['slider_values']['sEPset']
+        state['c']['req']['Eac_req'] = state['c']['req']['E/P_req']*state['c']['req']['Pac_req']
+        state['c']['cell']['Pdc_DIS_max'] = state['slider_values']['sPset']
+        
+        # === Fig. 2 | ERP, Limit Intersections: Imax(Pmax),Umin(Pmax) ===        
+        SDM_fcn.replot_ERP(g,state['res'],state['c'],sPset,set_EP=state["slider_values"]["sEPset"],set_P=state["slider_values"]["sPset"],prefix_str=prefix_str)
+        
+        # === Fig. 3 | CSP/DSS ===
+        SDM_fcn.plot_dss(g,state['c'],print_opt=True)
+        
+        # === Fig. 4 | Graphical Synthesis ===  
+        SDM_fcn.plot_constraint_intersection_trajectory(g,state['res'],state['c'],prefix_str=prefix_str)
+        
+        # === Fig. 1 | U(E),I(E),ERP ===
+        # Update with Feedback: c -> pub_lim (after SDM_fcn.replot_ERP!)
+        pub_lim['Umin']['cut'] = c['cell']['Udc_min']
+        pub_lim['Cratemax']['cut'] = c['cell']['Idc_DIS_max']/state['res'][0]['_settings']['ParameterValues']['Q_n'][0]
+        
+        # Coupling between different Limits forced by bool_loc_ax_limits=False
+        SDM_fcn.replot_EP_limits(g,res,tmp_ind,pub_lim=pub_lim,zfig=1,nPref=nPref,calc_EPsys=calc_EPsys,print_ann=False,prefix_str=prefix_str,bool_loc_ax_limits=False)
+    
+    
+    def set_dp(set_EPreq=0.2,set_Pmax=0):
+        """
+        Configures the actual design point by manipulating the energy-to-power
+        ratio (EP) and maximum power (Pmax) sliders.
+    
+        Parameters:
+        - set_EPreq (float, optional): Desired energy-to-power ratio for the design 
+          point. Defaults to `0.2`.
+        - set_Pmax (float, optional): Maximum power for the design point. If set to 
+          `0`, the slider is reset to its maximum value. Defaults to `0`.
+    
+        Returns:
+        - None: This function updates the slider values but does not return any value.
+    
+        Note:
+        - Directly manipulates `sEPset` and `sPset` slider objects to set the design 
+          point parameters.
+        - Resets the `Pmax` slider if the input value is `0` and then sets it to its 
+          maximum allowable value.
+        """
+        sEPset.set_val(set_EPreq)
+
+        if set_Pmax>0:
+            sPset.set_val(set_Pmax)
+        else:
+            sPset.reset()
+            sPset.set_val(sPset.valmax)
+
+    
+    #%%
+    # Plot: Slider Widget
     # -------------------------------------------------------------------------
     z = 0
     if 'fig_{}'.format(z) not in g:
             g['fig_{}'.format(z)] = plt.figure(z,figsize=[fig_size[-1],fig_size[-1]/2])    
+    
+    # Slider States
+    state = {'res':  res,
+              'c':    c,
+              'slider_values': {# recent slider values
+                                'sEPset':       c['req']['E/P_req'],
+                                'sPset':        dp_intersection[prefix_str+'P_cell'][~np.isnan(dp_intersection[prefix_str+'P_cell'])][-1],
+                                'sUcellmax':    c['cell']['Udc_max']}#pub_lim['Umax']['cut'],}
+              }
     
     # Slider Settings
     axcolor = 'lightgoldenrodyellow'
@@ -873,243 +963,16 @@ if __name__ == "__main__":
 
     axPset = g['fig_{}'.format(z)].add_axes([0.15, 0.33, 0.7, 0.05], facecolor=axcolor)
     axPset.add_artist(axPset.xaxis)
-        
-    # axUmin = g['fig_{}'.format(z)].add_axes([0.15, 0.2, 0.7, 0.03], facecolor=axcolor)
-    # axUmin.add_artist(axUmin.xaxis)
-    # axUmax = g['fig_{}'.format(z)].add_axes([0.15, 0.3, 0.7, 0.03], facecolor=axcolor)
-    # axUmax.add_artist(axUmax.xaxis)
-    # axImax = g['fig_{}'.format(z)].add_axes([0.15, 0.4, 0.7, 0.03], facecolor=axcolor)
-    # axImax.add_artist(axImax.xaxis)
-    # axPmax = g['fig_{}'.format(z)].add_axes([0.15, 0.5, 0.7, 0.03], facecolor=axcolor)
-    # axPmax.add_artist(axPmax.xaxis)    
-
-    sEPset_0 = c['req']['E/P_req']
-    sEPset = Slider(axEPset, r'$\mathrm{(E/P)_{req}}$', 0.001, 10, valinit=sEPset_0)#, orientation='vertical')
-    sPset_0 = dp_intersection[prefix_str+'P_cell'][~np.isnan(dp_intersection[prefix_str+'P_cell'])][-1]
-    sPset = Slider(axPset, r'$P^\mathrm{dis}_\mathrm{cell,max}$', g['ax_{}_{}'.format(2,0)].get_xlim()[0], g['ax_{}_{}'.format(2,0)].get_xlim()[1], valinit=sPset_0, color=farbe[2])#, orientation='vertical')
-
-
-
-    # Update Functions for Slider Widget
-    def replot_ERP(set_EP,set_P,zfig=2):
-        """
-        Dynamically updates and replots the Extended Ragone Plot (ERP) based on 
-        user-adjusted slider values. This function is integral to the interactive 
-        element of the System Design Method (SDM), allowing real-time visualization 
-        of the effects of changing the energy-to-power ratio (E/P) and maximum cell 
-        power on the ERP.
-        
-        Parameters:
-        - set_EP (float): The energy-to-power ratio value adjusted by the user.
-        - set_P (float): The maximum cell power value adjusted by the user.
-        - zfig (int, optional): Figure index in the plotting environment. Defaults to 2.
-        
-        Functionality:
-        - Recalculates intersection curves based on the new E/P ratio.
-        - Updates the plots with new data points reflecting the adjusted parameters.
-        - Resets the maximum cell power slider to align with the new E/P ratio.
-        - Adjusts system design parameters based on the new settings and replots 
-          relevant figures.
-        
-        Note:
-        - This function is called upon slider value changes and is key for interactive
-          analysis in the SDM framework.
-        - Requires global variables like 'g', 'res', and 'sPset' to be predefined 
-          and accessible.
-        """
-
-        tic = time.time()
-        print("[Info] Calculation of E/P Intersection Curves")
-        print("E/P_req = {:.5f} h".format(set_EP))
-        
-        dp_intersection = SDM_fcn.calc_intersection_curve(g,res,set_EP,print_error=False,prefix_str=prefix_str)
-        EPline_x = dp_intersection['valx_P']
-        EPline_y = dp_intersection[prefix_str+'P_cell']
-        id_min = min([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
-        id_max = max([n for n,i in enumerate(EPline_y) if ~np.isnan(i)])
-        sPmaxset = EPline_x[id_min] if set_P < EPline_x[id_min] else (EPline_x[id_max] if set_P > EPline_x[id_max] else set_P)
-        
-        try:
-            g['pl_{}_{}_{}'.format(zfig,0,100)][0].set_data(EPline_x,dp_intersection['valy_E'])
-            _,sEmaxset = SDM_fcn._set_intersection_limits(g,EPline_x,dp_intersection['valy_E'],zfig,0,x=sPmaxset,replot=True)
     
-            g['pl_{}_{}_{}'.format(zfig,1,100)][0].set_data(EPline_x,dp_intersection[prefix_str+'U_cell'])
-            id_max = max([n for n,i in enumerate(dp_intersection[prefix_str+'U_cell']) if ~np.isnan(i)])
-            g['pl_{}_{}_{}'.format(zfig,1,101)][0].set_data([EPline_x[id_max]],[dp_intersection[prefix_str+'U_cell'][id_max]])
-            _,sUminset = SDM_fcn._set_intersection_limits(g,EPline_x,dp_intersection[prefix_str+'U_cell'],zfig,1,x=sPmaxset,replot=True)
-                            
-            g['pl_{}_{}_{}'.format(zfig,2,100)][0].set_data(EPline_x,dp_intersection[prefix_str+'I_cell'])
-            id_max = max([n for n,i in enumerate(dp_intersection[prefix_str+'I_cell']) if ~np.isnan(i)])
-            g['pl_{}_{}_{}'.format(zfig,2,101)][0].set_data([EPline_x[id_max]],[dp_intersection[prefix_str+'I_cell'][id_max]])
-            _,sImaxset = SDM_fcn._set_intersection_limits(g,EPline_x,dp_intersection[prefix_str+'I_cell'],zfig,2,x=sPmaxset,replot=True)
-         
-            g['fig_{}'.format(zfig)].canvas.draw()
-        except:
-              pass
-        
-        # reset sPset when changing sEPset
-        sPset.eventson = False
-        sPset.valmin = EPline_x[id_min]
-        sPset.valmax = EPline_x[id_max]
-        sPset.vline.set_data([sPset.valmax]*2,sPset.vline.get_data()[-1])
-        # sPset.hline.set_data(sPset.hline.get_data()[0],[sPset.valmax]*2)
-        sPset.set_val(sPmaxset)
-        sPset.eventson = True
-        
-        
-        try:
-            c['cell']['Udc_min'] = sUminset
-            c['cell']['Idc_DIS_max'] = sImaxset
-            c['cell']['Pdc_DIS_max'] = sPmaxset
-            update_dss(0)
-        except:
-            pass
-        
-        print('[Info] tReplot = {:.3f}s'.format(time.time()-tic))
-
-
-    def update_intersection(val):
-        """
-        Updates the energy-to-power ratio (E/P) and maximum cell power parameters based on 
-        user input from the slider widget in the System Design Method (SDM) tool. It 
-        triggers the replotting of the Extended Ragone Plot (ERP) to reflect these changes.
-        
-        Parameters:
-        - val: The new value from the slider input.
-        
-        Functionality:
-        - Adjusts system parameters for E/P ratio and maximum cell power in response to 
-          slider changes.
-        - Calls 'replot_ERP' to update the ERP visualization with the new parameters.
-        
-        Usage:
-        - Integral to the interactive element of the SDM tool, allowing users to explore 
-          the impact of parameter variations on system design and performance.
-        
-        Note:
-        - This function is part of the interactive analysis features in the SDM tool.
-        """
-        c['req']['E/P_req'] = sEPset.val
-        set_P = sPset.val
-        replot_ERP(c['req']['E/P_req'],set_P)
-         
+    sEPset = Slider(axEPset, r'$\mathrm{(E/P)_{req}}$', 0.001, 10, valinit=state['slider_values']['sEPset'])#, orientation='vertical')
+    sPset = Slider(axPset, r'$P^\mathrm{dis}_\mathrm{cell,max}$', g['ax_{}_{}'.format(2,0)].get_xlim()[0], g['ax_{}_{}'.format(2,0)].get_xlim()[1], valinit=state['slider_values']['sPset'], color=farbe[2])#, orientation='vertical')
     
-    def update_dss(val):
-        """
-        Updates the Design Solution Space (DSS) visualization in response to parameter 
-        changes in the System Design Method (SDM) analysis tool. It refreshes the DSS plot 
-        and constraint intersection trajectory based on the current parameter values.
-        
-        Parameters:
-        - val: The updated value triggering the function, typically from a UI element like 
-          a slider or input field.
-        
-        Functionality:
-        - Calls the 'plot_dss' function to redraw the DSS with updated parameters.
-        - Invokes 'plot_constraint_intersection_trajectory' to update the visualization 
-          of constraints based on the new parameter values.
-        - Utilizes matplotlib's 'draw' function to render the updated plots on the canvas.
-        
-        Usage:
-        - Essential for maintaining an interactive and responsive visualization environment 
-          in the SDM tool, allowing users to see the immediate impact of parameter changes 
-          on the DSS and constraints.
-        
-        Note:
-        - This function plays a key role in the interactivity of the SDM tool, ensuring 
-          dynamic visualization updates.
-        """
-        # c['pec']['Udc_min'] = sUinvmin.val
-        # c['pec']['Udc_max'] = sUinvmax.val
-        # c['pec']['Idc_max'] = sIinvmax.val
-        # c['pec']['Pdc_max'] = sPinvmax.val
-        
-        SDM_fcn.plot_dss(g,c,zfig=3,zax=0,print_opt=True)
-        SDM_fcn.plot_constraint_intersection_trajectory(g, res, c, prefix_str=prefix_str)
-
-        plt.draw()
-       
-    
-    def update_dp(req_EP,pec_Umin,pec_Umax,pec_Imax,pec_Pmax,cell_P=0):
-        """
-        Adjusts the values of slider widgets based on specified electrical parameters of 
-        power electronic converters (PEC) and energy storage cells. This function aligns 
-        slider positions with changes in PEC and cell parameters, enabling dynamic and 
-        interactive analysis in the SDM tool.
-        
-        Parameters:
-        - req_EP (float): The required energy-to-power ratio (E/P) setting for the system.
-        - pec_Umin (float): The minimum voltage limit for the power electronic converter.
-        - pec_Umax (float): The maximum voltage limit for the power electronic converter.
-        - pec_Imax (float): The maximum current limit for the power electronic converter.
-        - pec_Pmax (float): The maximum power limit for the power electronic converter.
-        - cell_P (float, optional): The cell power value. If greater than 0, the slider 
-          is set to this value; otherwise, the slider is reset. Defaults to 0.
-        
-        Functionality:
-        - Sets the energy-to-power ratio slider to the 'req_EP' value.
-        - Adjusts the cell power slider based on the 'cell_P' parameter.
-        - (Optional) Adjusts additional sliders for PEC limits if uncommented.
-        
-        Usage:
-        - Integral to the interactive aspect of the SDM tool, allowing for the adjustment 
-          of system parameters through a graphical interface.
-        
-        Note:
-        - This function is essential for ensuring that changes in PEC and cell parameters 
-          are accurately reflected in the corresponding sliders, enhancing the interactive 
-          user experience in system design exploration.
-        """
-
-        # Manipulate Sliders
-        sEPset.set_val(req_EP)
-
-        if cell_P>0:
-            sPset.set_val(cell_P)
-        else:
-            sPset.reset()
-            sPset.set_val(sPset.valmax)
-
-        # sUinvmin.eventson = False
-        # sUinvmin.set_val(pec_Umin)
-        # sUinvmin.eventson = True
-
-        # sUinvmax.eventson = False
-        # sUinvmax.set_val(pec_Umax)
-        # sUinvmax.eventson = True
-
-        # sIinvmax.eventson = False
-        # sIinvmax.set_val(pec_Imax)
-        # sIinvmax.eventson = True
-        
-        # sPinvmax.set_val(pec_Pmax)
-
-
     # Update Slider Widget
-    sEPset.on_changed(update_intersection)
-    sPset.on_changed(update_intersection)
-    
-    # sUinvmin = Slider(axUmin, r'$U_\mathrm{inv,min}$', 0, 1500, valinit=c['pec']['Udc_min'])
-    # sUinvmin_xlim = sUinvmin.ax.get_xlim()
-    # sUinvmin_xy = sUinvmin.poly.get_xy()
-    # # sUinvmin_xy[np.where(sUinvmin_xy == sUinvmin_xlim[0])[0][0]] = sUinvmin_xlim[-1]
-    # sUinvmin.poly.set_xy(sUinvmin_xy)
-    
-    # sUinvmax = Slider(axUmax, r'$U_\mathrm{inv,max}$', 0, 1500, valinit=c['pec']['Udc_max'])
-    # sIinvmax = Slider(axImax, r'$I_\mathrm{inv,max}$', 0, 2000, valinit=c['pec']['Idc_max'])
-    # sPinvmax = Slider(axPmax, r'$P_\mathrm{inv,max}$', 0, 1500*2000, valinit=c['pec']['Pdc_max'])
-    
-    # sUinvmin.on_changed(update_dss)
-    # sUinvmax.on_changed(update_dss)
-    # sIinvmax.on_changed(update_dss)
-    # sPinvmax.on_changed(update_dss)
-    
-    # Initial Update of Slider Positions
-    sEPset.set_val(sEPset.val)
+    sEPset.on_changed(lambda val: update_plots("sEPset", val))
+    sPset.on_changed(lambda val: update_plots("sPset", val))
 
 
     #%%
     print('##################################################################')
     print('SYSTEM DESIGN METHOD: USER SETTINGS')
-
     set_case(1)
